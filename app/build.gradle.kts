@@ -78,4 +78,7 @@ dependencies {
 
     // Kotlin Coroutines for asynchronous programming
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // Joystick library
+    implementation("com.github.manalkaff:JetStick:1.2")
 }
