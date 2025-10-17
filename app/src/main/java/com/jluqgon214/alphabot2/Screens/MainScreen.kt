@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jluqgon214.alphabot2.R
 import com.jluqgon214.alphabot2.SSHManager
 import com.jluqgon214.alphabot2.SocketManager
 import com.manalkaff.jetstick.JoyStick
@@ -125,11 +126,13 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
 
             JoyStick(
                 Modifier.padding(30.dp),
-                size = 150.dp,
-                dotSize = 30.dp
+                size = 200.dp,
+                dotSize = 50.dp,
+                backgroundImage = R.drawable.base,
+                dotImage = R.drawable.top,
             ) { x: Float, y: Float ->
                 joystickX = x
-                joystickY = -y // Invertir Y
+                joystickY = -y // Invertir Y porque la dirección de giro estaba invertida en un principio
             }
         }
     }
