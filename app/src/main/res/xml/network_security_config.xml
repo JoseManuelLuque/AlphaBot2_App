@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Permitir tráfico HTTP sin cifrar (cleartext) para la red local -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Permitir cualquier dominio (para IPs locales) -->
+        <domain includeSubdomains="true">192.168.1.1</domain>
+        <domain includeSubdomains="true">192.168.0.1</domain>
+        <domain includeSubdomains="true">10.0.0.1</domain>
+        <domain includeSubdomains="true">172.16.0.1</domain>
+        <!-- O simplemente permitir todo -->
+    </domain-config>
+
+    <!-- Alternativa: Permitir cleartext para TODA la app (solo en desarrollo/red local) -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+

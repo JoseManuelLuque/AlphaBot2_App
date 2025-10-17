@@ -54,13 +54,28 @@ object SocketManager {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 if (socket?.isConnected == true && writer != null) {
-                    writer?.println("$x $y")
+                    writer?.println("MOVE $x $y")
                     // No esperamos respuesta para máxima velocidad
                 } else {
                     Log.w(TAG, "Socket no conectado")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error enviando datos: ${e.message}")
+            }
+        }
+    }
+
+    fun sendCameraData(x: Float, y: Float) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (socket?.isConnected == true && writer != null) {
+                    writer?.println("CAMERA $x $y")
+                    // No esperamos respuesta para máxima velocidad
+                } else {
+                    Log.w(TAG, "Socket no conectado para cámara")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error enviando datos de cámara: ${e.message}")
             }
         }
     }
@@ -88,4 +103,3 @@ object SocketManager {
         return socket?.isConnected == true && !socket!!.isClosed
     }
 }
-
