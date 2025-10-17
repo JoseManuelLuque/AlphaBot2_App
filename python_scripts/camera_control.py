@@ -342,40 +342,74 @@ class CameraController:
         if abs(velocity_x) < 0.05 and abs(velocity_y) < 0.05:
             if self.is_moving:
                 # Acabamos de detenernos: esperar un momento y apagar PWM
-                time.sleep(0.15)
+                time.sleep(0.05)  # Reducido para mejor respuesta
                 self.stop_pwm()
             return
 
         # ===== ACTIVAR MODO MOVIMIENTO =====
         self.is_moving = True
 
-        # ===== FACTOR DE VELOCIDAD =====
-        # Controla cuántos microsegundos se mueve el servo por cada actualización
-        # Ajusta este valor para cambiar la sensibilidad/velocidad de la cámara
+        # ===== FACTOR DE VELOCIDAD OPTIMIZADO =====
+        # Ajustado para máxima suavidad con servos mecánicos
+        # Con 20 actualizaciones/segundo (50ms) y BASE_SPEED=22:
+        # - Velocidad máxima: 440 µs/segundo
+        # - Rango total 1400µs → ~3.2 segundos recorrer todo
         #
-        # Actualización cada 100ms (desde Android) → 10 actualizaciones/segundo
-        # Con SPEED_FACTOR=25 → 250 µs/segundo a velocidad máxima
-        # Rango total: 2000 µs → Tarda ~8 segundos en recorrer todo el rango
-        SPEED_FACTOR = 25
+        # Curva de respuesta no lineal para mejor control:
+        # - Movimientos pequeños = muy precisos
+        # - Movimientos grandes = más rápidos pero controlables
+        BASE_SPEED = 22  # Optimizado para mejor balance velocidad/suavidad
 
-        # ===== CALCULAR INCREMENTOS =====
-        # El incremento depende de la velocidad del joystick
-        delta_x = velocity_x * SPEED_FACTOR          # Incremento horizontal
-        delta_y = -velocity_y * SPEED_FACTOR         # Incremento vertical (invertir Y)
+        # Aplicar curva exponencial suave para mejor sensación
+        # Esto hace que movimientos pequeños sean muy precisos
+        # y movimientos grandes sean más rápidos
+        def apply_curve(value):
+            """Aplica una curva suave para mejor control"""
+            sign = 1 if value > 0 else -1
+            return sign * (abs(value) ** 1.2) * BASE_SPEED  # Curva más suave (1.2 en vez de 1.3)
+
+        # ===== CALCULAR INCREMENTOS CON CURVA SUAVE =====
+        delta_x = apply_curve(velocity_x)
+        delta_y = apply_curve(-velocity_y)  # Invertir Y
 
         # ===== APLICAR INCREMENTOS (INCREMENTAL, NO ABSOLUTO) =====
         # Esto es lo que hace que sea tipo FPS: sumamos al valor actual
-        self.horizontal_pos += int(delta_x)
-        self.vertical_pos += int(delta_y)
+        new_horizontal = self.horizontal_pos + delta_x
+        new_vertical = self.vertical_pos + delta_y
 
         # ===== LIMITAR A RANGOS VÁLIDOS =====
-        # Evitar que los servos intenten ir más allá de sus límites físicos
-        self.horizontal_pos = max(self.MIN_PULSE, min(self.MAX_PULSE, self.horizontal_pos))
-        self.vertical_pos = max(self.MIN_PULSE, min(self.MAX_PULSE, self.vertical_pos))
+        new_horizontal = max(self.MIN_PULSE, min(self.MAX_PULSE, new_horizontal))
+        new_vertical = max(self.MIN_PULSE, min(self.MAX_PULSE, new_vertical))
+
+        # ===== INTERPOLACIÓN SUAVE OPTIMIZADA (Smoothing) =====
+        # Interpolación más agresiva para máxima suavidad
+        # Esto compensa las limitaciones mecánicas de los servos
+        SMOOTH_FACTOR = 0.75  # Aumentado de 0.7 a 0.75 para más suavidad
+
+        self.horizontal_pos = self.horizontal_pos * (1 - SMOOTH_FACTOR) + new_horizontal * SMOOTH_FACTOR
+        self.vertical_pos = self.vertical_pos * (1 - SMOOTH_FACTOR) + new_vertical * SMOOTH_FACTOR
 
         # ===== APLICAR NUEVA POSICIÓN A LOS SERVOS =====
-        self.pwm.setServoPulse(self.SERVO_HORIZONTAL, self.horizontal_pos)
-        self.pwm.setServoPulse(self.SERVO_VERTICAL, self.vertical_pos)
+        # Solo actualizar si el cambio es significativo (más de 2 microsegundos)
+        # Esto evita microajustes que causan vibraciones en servos baratos
+        MIN_MOVEMENT = 2
+
+        new_h = int(self.horizontal_pos)
+        new_v = int(self.vertical_pos)
+
+        # Obtener posiciones anteriores (las guardamos como atributo de instancia)
+        if not hasattr(self, '_last_h_sent'):
+            self._last_h_sent = new_h
+            self._last_v_sent = new_v
+
+        # Solo enviar comando si hay cambio significativo
+        if abs(new_h - self._last_h_sent) >= MIN_MOVEMENT:
+            self.pwm.setServoPulse(self.SERVO_HORIZONTAL, new_h)
+            self._last_h_sent = new_h
+
+        if abs(new_v - self._last_v_sent) >= MIN_MOVEMENT:
+            self.pwm.setServoPulse(self.SERVO_VERTICAL, new_v)
+            self._last_v_sent = new_v
 
     def cleanup(self):
         """

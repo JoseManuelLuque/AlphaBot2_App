@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.jluqgon214.alphabot2.GamepadManager
 import com.jluqgon214.alphabot2.R
 import com.jluqgon214.alphabot2.SSHManager
 import com.jluqgon214.alphabot2.SocketManager
@@ -35,17 +36,26 @@ import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 
 @Composable
-fun MainScreen(host: String, user: String, password: String, innerPadding: PaddingValues) {
+fun MainScreen(
+    host: String,
+    user: String,
+    password: String,
+    innerPadding: PaddingValues,
+    gamepadManager: GamepadManager
+) {
     var statusText by remember { mutableStateOf("Iniciando...") }
     var isConnected by remember { mutableStateOf(false) }
 
-    // Variables para joystick de movimiento
+    // Variables para joystick táctil de movimiento
     var joystickX by remember { mutableStateOf(0f) }
     var joystickY by remember { mutableStateOf(0f) }
 
-    // Variables para joystick de cámara
+    // Variables para joystick táctil de cámara
     var cameraX by remember { mutableStateOf(0f) }
     var cameraY by remember { mutableStateOf(0f) }
+
+    // Estado del gamepad
+    val gamepadState = gamepadManager.state
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -54,6 +64,14 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
 
     // URL del stream de video
     val streamUrl = "http://$host:8080/stream.mjpg"
+
+    // Detectar gamepads periódicamente
+    LaunchedEffect(Unit) {
+        while (true) {
+            gamepadManager.updateConnectionState()
+            delay(2000) // Verificar cada 2 segundos
+        }
+    }
 
     LaunchedEffect(Unit) {
         // Conectar por SSH para iniciar el servidor
@@ -93,50 +111,73 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
         }
     }
 
-    // Envío continuo de comandos por socket
+    // Envío continuo de comandos por socket (actualizado para gamepad)
     LaunchedEffect(isConnected) {
         if (isConnected) {
+            Log.d("MainScreen", "Bucle de control iniciado")
+
             while (SocketManager.isConnected()) {
-                delay(100) // 10 comandos por segundo
+                delay(50) // 20 comandos por segundo para movimiento más suave
+
+                // Leer el estado actual del gamepad directamente
+                val currentGamepadState = gamepadManager.state
+
+                // ========== DETERMINAR FUENTE DE INPUT ==========
+                // Prioridad: Gamepad > Joysticks táctiles
+
+                val (moveX, moveY, camX, camY) = if (currentGamepadState.isConnected) {
+                    // ===== CONTROL POR GAMEPAD =====
+                    // Stick izquierdo para movimiento (invertir ambos ejes)
+                    val gMoveX = -currentGamepadState.leftStickX
+                    val gMoveY = currentGamepadState.leftStickY
+
+                    // Stick derecho para cámara (invertir solo X)
+                    val gCamX = -currentGamepadState.rightStickX
+                    val gCamY = -currentGamepadState.rightStickY // Invertir Y
+
+                    listOf(gMoveX, gMoveY, gCamX, gCamY)
+                } else {
+                    // ===== CONTROL POR JOYSTICKS TÁCTILES =====
+                    val tMoveX = (-joystickX / joystickRadius).coerceIn(-1f, 1f)
+                    val tMoveY = (joystickY / joystickRadius).coerceIn(-1f, 1f)
+                    val tCamX = (cameraX / joystickRadius).coerceIn(-1f, 1f)
+                    val tCamY = (cameraY / joystickRadius).coerceIn(-1f, 1f)
+
+                    listOf(tMoveX, tMoveY, tCamX, tCamY)
+                }
 
                 // ========== CONTROL DE MOVIMIENTO (MOTORES) ==========
-                // Normalizar valores del joystick de movimiento
-                val normalizedX = (-joystickX / joystickRadius).coerceIn(-1f, 1f)
-                val normalizedY = (joystickY / joystickRadius).coerceIn(-1f, 1f)
-
-                // Calcular magnitud para movimiento
-                val magnitude =
-                    sqrt(normalizedX * normalizedX + normalizedY * normalizedY).coerceIn(0f, 1f)
+                val moveMagnitude = sqrt(moveX * moveX + moveY * moveY).coerceIn(0f, 1f)
 
                 // Zona muerta del 20% para movimiento
-                if (magnitude > 0.2f) {
-                    SocketManager.sendJoystickData(normalizedX, normalizedY)
+                if (moveMagnitude > 0.2f) {
+                    if (currentGamepadState.isConnected) {
+                        Log.d("GamepadControl", "Movimiento: x=${String.format("%.2f", moveX)}, y=${String.format("%.2f", moveY)}")
+                    }
+                    SocketManager.sendJoystickData(moveX, moveY)
                 } else {
-                    // Detener cuando está en zona muerta
                     SocketManager.sendJoystickData(0f, 0f)
                 }
 
                 // ========== CONTROL DE CÁMARA (TIPO FPS - VELOCIDAD INCREMENTAL) ==========
-                // La cámara usa la posición del joystick como VELOCIDAD de rotación
-                // Si mantienes el joystick a la derecha, la cámara SIGUE girando a la derecha
-
-                val rawCameraX = (cameraX / joystickRadius).coerceIn(-1f, 1f)
-                val rawCameraY = (cameraY / joystickRadius).coerceIn(-1f, 1f)
-
-                // Calcular magnitud
-                val cameraMagnitude = sqrt(rawCameraX * rawCameraX + rawCameraY * rawCameraY)
+                val cameraMagnitude = sqrt(camX * camX + camY * camY)
 
                 // Zona muerta del 15%
                 if (cameraMagnitude > 0.15f) {
-                    // El joystick indica VELOCIDAD de movimiento
-                    // Valores pequeños = rotación lenta
-                    // Valores grandes = rotación rápida
-                    SocketManager.sendCameraData(rawCameraX, rawCameraY)
-                    Log.d("CameraControl", "Velocidad cámara: x=$rawCameraX, y=$rawCameraY")
+                    SocketManager.sendCameraData(camX, camY)
+                    if (currentGamepadState.isConnected) {
+                        Log.d("GamepadControl", "Cámara: x=${String.format("%.2f", camX)}, y=${String.format("%.2f", camY)}")
+                    }
                 } else {
-                    // Si está centrado, o se suelta el joystick, NO mover la cámara (velocidad = 0)
-                    // La cámara se queda donde está
                     SocketManager.sendCameraData(0f, 0f)
+                }
+
+                // ========== BOTONES DEL GAMEPAD ==========
+                if (currentGamepadState.isConnected) {
+                    // Botón B/Circle: Centrar cámara (solo al presionar, no mantener)
+                    // TODO: Implementar comando de centrado de cámara
+
+                    // Botón Start/Options: Desconectar (puedes implementar si quieres)
                 }
             }
         }
@@ -165,11 +206,26 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Estado de conexión
-            Text(
-                text = statusText,
+            // Estado de conexión (actualizado para mostrar gamepad)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(16.dp)
-            )
+            ) {
+                Text(text = statusText)
+
+                // Mostrar estado del gamepad
+                if (gamepadState.isConnected) {
+                    Text(
+                        text = "🎮 ${gamepadState.deviceName}",
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                } else {
+                    Text(
+                        text = "🎮 Mando no detectado - Usando táctil",
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
 
             // Stream de video (solo se muestra si está conectado)
             if (isConnected) {
@@ -226,36 +282,50 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
                 )
             }
 
-            // Joysticks de control
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(bottom = 32.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Joystick de control de movimiento
-                JoyStick(
-                    Modifier.padding(16.dp),
-                    size = 150.dp,
-                    dotSize = 40.dp,
-                    backgroundImage = R.drawable.base,
-                    dotImage = R.drawable.top,
-                ) { x: Float, y: Float ->
-                    joystickX = x
-                    joystickY = -y
-                }
+            // Joysticks de control táctil (se ocultan si hay gamepad conectado)
+            if (!gamepadState.isConnected) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(bottom = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // Joystick de control de movimiento
+                    JoyStick(
+                        Modifier.padding(16.dp),
+                        size = 150.dp,
+                        dotSize = 40.dp,
+                        backgroundImage = R.drawable.base,
+                        dotImage = R.drawable.top,
+                    ) { x: Float, y: Float ->
+                        joystickX = x
+                        joystickY = -y
+                    }
 
-                // Joystick de control de cámara
-                JoyStick(
-                    Modifier.padding(16.dp),
-                    size = 150.dp,
-                    dotSize = 40.dp,
-                    backgroundImage = R.drawable.base,
-                    dotImage = R.drawable.top,
-                ) { x: Float, y: Float ->
-                    cameraX = -x
-                    cameraY = y
+                    // Joystick de control de cámara
+                    JoyStick(
+                        Modifier.padding(16.dp),
+                        size = 150.dp,
+                        dotSize = 40.dp,
+                        backgroundImage = R.drawable.base,
+                        dotImage = R.drawable.top,
+                    ) { x: Float, y: Float ->
+                        cameraX = -x
+                        cameraY = y
+                    }
+                }
+            } else {
+                // Mostrar indicadores del gamepad cuando está conectado
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Controles Gamepad:")
+                    Text("🕹️ Stick Izq: Movimiento | Stick Der: Cámara")
+                    Text("🔘 Circle/B: Centrar cámara | L2/R2: Turbo")
                 }
             }
         }
