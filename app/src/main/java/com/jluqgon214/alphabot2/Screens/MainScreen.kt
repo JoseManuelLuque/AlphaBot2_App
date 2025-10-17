@@ -121,20 +121,20 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
                 // Si mantienes el joystick a la derecha, la cámara SIGUE girando a la derecha
 
                 val rawCameraX = (cameraX / joystickRadius).coerceIn(-1f, 1f)
-                val rawCameraY = (cameraY / joystickRadius).coerceIn(-1f, 1f)  // INVERTIR Y
+                val rawCameraY = (cameraY / joystickRadius).coerceIn(-1f, 1f)
 
                 // Calcular magnitud
                 val cameraMagnitude = sqrt(rawCameraX * rawCameraX + rawCameraY * rawCameraY)
 
                 // Zona muerta del 15%
                 if (cameraMagnitude > 0.15f) {
-                    // El joystick indica VELOCIDAD de movimiento, no posición
+                    // El joystick indica VELOCIDAD de movimiento
                     // Valores pequeños = rotación lenta
                     // Valores grandes = rotación rápida
                     SocketManager.sendCameraData(rawCameraX, rawCameraY)
                     Log.d("CameraControl", "Velocidad cámara: x=$rawCameraX, y=$rawCameraY")
                 } else {
-                    // Si está centrado, NO mover la cámara (velocidad = 0)
+                    // Si está centrado, o se suelta el joystick, NO mover la cámara (velocidad = 0)
                     // La cámara se queda donde está
                     SocketManager.sendCameraData(0f, 0f)
                 }
@@ -236,8 +236,8 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
             ) {
                 // Joystick de control de movimiento
                 JoyStick(
-                    Modifier.padding(30.dp),
-                    size = 140.dp,
+                    Modifier.padding(16.dp),
+                    size = 150.dp,
                     dotSize = 40.dp,
                     backgroundImage = R.drawable.base,
                     dotImage = R.drawable.top,
@@ -248,8 +248,8 @@ fun MainScreen(host: String, user: String, password: String, innerPadding: Paddi
 
                 // Joystick de control de cámara
                 JoyStick(
-                    Modifier.padding(30.dp),
-                    size = 140.dp,
+                    Modifier.padding(16.dp),
+                    size = 150.dp,
                     dotSize = 40.dp,
                     backgroundImage = R.drawable.base,
                     dotImage = R.drawable.top,

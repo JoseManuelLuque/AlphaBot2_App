@@ -38,9 +38,8 @@ import RPi.GPIO as GPIO
 import sys
 import time
 import threading
-import subprocess
 
-# Importar el controlador de cámara
+# ===== IMPORTAR CONTROLADOR DE CÁMARA =====
 try:
     from camera_control import CameraController
     camera_available = True
@@ -73,31 +72,50 @@ last_command_time = time.time()    # Timestamp del último comando recibido
 motors_active = False               # Estado de los motores (activos/inactivos)
 TIMEOUT_SECONDS = 0.5               # Timeout de seguridad: 500 milisegundos
 
+# Variables globales para PWM (se inicializan en init_gpio)
+pwm_a = None
+pwm_b = None
+
 # =============================================================================
 # INICIALIZACIÓN DE GPIO
 # =============================================================================
-# Se inicializa una sola vez al arrancar el servidor para evitar conflictos
 
-print("🔧 Inicializando GPIO...")
-GPIO.setmode(GPIO.BCM)              # Usar numeración BCM de pines
-GPIO.setwarnings(False)             # Desactivar warnings de GPIO
+def init_gpio():
+    """
+    Inicializa los pines GPIO y objetos PWM.
 
-# Configurar pines de motores como salidas
-GPIO.setup(AIN1, GPIO.OUT)
-GPIO.setup(AIN2, GPIO.OUT)
-GPIO.setup(BIN1, GPIO.OUT)
-GPIO.setup(BIN2, GPIO.OUT)
-GPIO.setup(PWMA, GPIO.OUT)
-GPIO.setup(PWMB, GPIO.OUT)
+    Esta función debe llamarse una vez al inicio del servidor.
+    Se separó del nivel del módulo para mejor manejo de errores.
+    """
+    global pwm_a, pwm_b
 
-# Crear objetos PWM con frecuencia de 1000 Hz
-# Mayor frecuencia = movimiento más suave y menos ruido audible
-pwm_a = GPIO.PWM(PWMA, 1000)       # PWM motor izquierdo a 1 kHz
-pwm_b = GPIO.PWM(PWMB, 1000)       # PWM motor derecho a 1 kHz
-pwm_a.start(0)                      # Iniciar PWM al 0% (motor detenido)
-pwm_b.start(0)
+    print("🔧 Inicializando GPIO...")
 
-print("✅ GPIO inicializado correctamente")
+    try:
+        GPIO.setmode(GPIO.BCM)              # Usar numeración BCM de pines
+        GPIO.setwarnings(False)             # Desactivar warnings de GPIO
+
+        # Configurar pines de motores como salidas
+        GPIO.setup(AIN1, GPIO.OUT)
+        GPIO.setup(AIN2, GPIO.OUT)
+        GPIO.setup(BIN1, GPIO.OUT)
+        GPIO.setup(BIN2, GPIO.OUT)
+        GPIO.setup(PWMA, GPIO.OUT)
+        GPIO.setup(PWMB, GPIO.OUT)
+
+        # Crear objetos PWM con frecuencia de 1000 Hz
+        # Mayor frecuencia = movimiento más suave y menos ruido audible
+        pwm_a = GPIO.PWM(PWMA, 1000)       # PWM motor izquierdo a 1 kHz
+        pwm_b = GPIO.PWM(PWMB, 1000)       # PWM motor derecho a 1 kHz
+        pwm_a.start(0)                      # Iniciar PWM al 0% (motor detenido)
+        pwm_b.start(0)
+
+        print("✅ GPIO inicializado correctamente")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error inicializando GPIO: {e}")
+        return False
 
 # =============================================================================
 # FUNCIONES DE CONTROL DE MOTORES
@@ -331,13 +349,15 @@ def start_server(port=5555):
 
     # ===== INICIALIZAR CONTROLADOR DE CÁMARA =====
     camera = None
-    if camera_available:
+    camera_enabled = camera_available  # Usar variable local para evitar problemas de scope
+
+    if camera_enabled:
         try:
             camera = CameraController(debug=False)
             print("📷 Controlador de cámara inicializado")
         except Exception as e:
             print(f"⚠️  No se pudo inicializar la cámara: {e}")
-            camera_available = False
+            camera_enabled = False
 
     # ===== INICIAR WATCHDOG DE SEGURIDAD =====
     print("🛡️  Iniciando watchdog de seguridad...")
@@ -504,6 +524,11 @@ if __name__ == "__main__":
     Ejecuta el servidor cuando se llama el script directamente.
     """
     try:
+        # Inicializar GPIO antes de iniciar el servidor
+        if not init_gpio():
+            print("❌ Falló la inicialización de GPIO. El servidor no puede arrancar.")
+            sys.exit(1)
+
         start_server()
     except Exception as e:
         print(f"💥 Error fatal: {e}")

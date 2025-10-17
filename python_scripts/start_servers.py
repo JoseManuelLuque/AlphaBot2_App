@@ -46,7 +46,6 @@ def kill_existing_servers():
     Procesos que se detienen:
     - joystick_server.py (puerto 5555)
     - camera_stream.py (puerto 8080)
-    - start_servers.py previos
 
     Usa SIGTERM (señal 15) para permitir limpieza ordenada.
     """
@@ -57,9 +56,9 @@ def kill_existing_servers():
     # Matar servidores usando pkill (busca por nombre de proceso)
     # -f: Buscar en toda la línea de comandos, no solo el nombre del proceso
     # stderr=DEVNULL: Silenciar error si no hay procesos para matar
+    # NOTA: NO matamos start_servers.py porque ese es el proceso actual
     subprocess.run(["pkill", "-f", "joystick_server.py"], stderr=subprocess.DEVNULL)
     subprocess.run(["pkill", "-f", "camera_stream.py"], stderr=subprocess.DEVNULL)
-    subprocess.run(["pkill", "-f", "start_servers.py"], stderr=subprocess.DEVNULL)
 
     # Esperar a que los procesos terminen limpiamente
     time.sleep(1)

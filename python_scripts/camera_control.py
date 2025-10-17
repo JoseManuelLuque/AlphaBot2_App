@@ -225,9 +225,17 @@ class CameraController:
     SERVO_VERTICAL = 1                # Canal PWM para servo vertical (tilt)
 
     # ===== LÍMITES DE PULSO (en microsegundos) =====
-    MIN_PULSE = 500                   # Pulso mínimo del servo
-    MAX_PULSE = 2500                  # Pulso máximo del servo
-    CENTER_PULSE = 1500               # Pulso central del servo
+    MIN_PULSE = 200                   # Pulso mínimo del servo
+    MAX_PULSE = 1600                  # Pulso máximo del servo
+
+    # ===== CALIBRACIÓN DEL CENTRO =====
+    # Ajusta estos valores para que la cámara apunte exactamente al frente
+    # Si la cámara apunta a la izquierda, AUMENTA CENTER_HORIZONTAL
+    # Si la cámara apunta a la derecha, DISMINUYE CENTER_HORIZONTAL
+    # Si la cámara apunta arriba, AUMENTA CENTER_VERTICAL
+    # Si la cámara apunta abajo, DISMINUYE CENTER_VERTICAL
+    CENTER_HORIZONTAL = 900          # Centro horizontal (ajustado para calibración)
+    CENTER_VERTICAL = 1100            # Centro vertical (puede necesitar ajuste)
 
     def __init__(self, debug=False):
         """
@@ -248,8 +256,8 @@ class CameraController:
 
         # ===== POSICIONES ACTUALES =====
         # Guardamos la posición actual de cada servo en microsegundos
-        self.horizontal_pos = self.CENTER_PULSE
-        self.vertical_pos = self.CENTER_PULSE
+        self.horizontal_pos = self.CENTER_HORIZONTAL
+        self.vertical_pos = self.CENTER_VERTICAL
 
         # ===== ESTADO DE MOVIMIENTO =====
         self.is_moving = False            # Indica si los servos están en movimiento
@@ -269,8 +277,8 @@ class CameraController:
         3. Desactiva PWM para evitar vibraciones y ruido
         """
         print("🎯 Centrando cámara...")
-        self.horizontal_pos = self.CENTER_PULSE
-        self.vertical_pos = self.CENTER_PULSE
+        self.horizontal_pos = self.CENTER_HORIZONTAL
+        self.vertical_pos = self.CENTER_VERTICAL
 
         # Aplicar posición central a ambos servos
         self.pwm.setServoPulse(self.SERVO_HORIZONTAL, self.horizontal_pos)
