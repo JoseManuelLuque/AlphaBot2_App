@@ -1,15 +1,15 @@
 package com.jluqgon214.alphabot2.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.jluqgon214.alphabot2.GamepadManager
+import com.jluqgon214.alphabot2.gamepad.GamepadManager
 import com.jluqgon214.alphabot2.screens.ConfigScreen
 import com.jluqgon214.alphabot2.screens.MainScreen
-import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
 fun NavGraph(
@@ -53,4 +53,3 @@ fun NavGraph(
         }
     }
 }
-

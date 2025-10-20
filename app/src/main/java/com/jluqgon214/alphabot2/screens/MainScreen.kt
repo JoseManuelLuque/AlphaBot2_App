@@ -3,33 +3,19 @@ package com.jluqgon214.alphabot2.screens
 import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.jluqgon214.alphabot2.GamepadManager
 import com.jluqgon214.alphabot2.R
-import com.jluqgon214.alphabot2.SSHManager
-import com.jluqgon214.alphabot2.SocketManager
+import com.jluqgon214.alphabot2.gamepad.GamepadManager
+import com.jluqgon214.alphabot2.models.SpeedMode
+import com.jluqgon214.alphabot2.network.SSHManager
+import com.jluqgon214.alphabot2.network.SocketManager
 import com.manalkaff.jetstick.JoyStick
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -54,6 +40,9 @@ fun MainScreen(
     var cameraX by remember { mutableStateOf(0f) }
     var cameraY by remember { mutableStateOf(0f) }
 
+    // ===== MODO DE VELOCIDAD PARA CONTROL TÁCTIL =====
+    var speedMode by remember { mutableStateOf(SpeedMode.STANDARD) }
+
     // Estado del gamepad
     val gamepadState = gamepadManager.state
 
@@ -69,7 +58,7 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         while (true) {
             gamepadManager.updateConnectionState()
-            delay(2000) // Verificar cada 2 segundos
+            delay(2000)
         }
     }
 
@@ -79,20 +68,17 @@ fun MainScreen(
             if (sshConnected) {
                 statusText = "SSH conectado. Iniciando servidores..."
 
-                // Matar cualquier servidor anterior
                 SSHManager.executeCommand("pkill -f joystick_server.py; pkill -f camera_stream.py; pkill -f start_servers.py") { _ ->
                     coroutineScope.launch {
                         delay(500)
 
-                        // Usar el script de inicio unificado que es más robusto
                         SSHManager.executeCommand("python3 '/home/pi/Android App/start_servers.py'") { result ->
                             Log.d("ServerStart", "Resultado inicio: $result")
                             statusText = "Servidores iniciados. Conectando..."
 
                             coroutineScope.launch {
-                                delay(3000)  // Dar más tiempo para que los servidores se inicien
+                                delay(3000)
 
-                                // Conectar por socket al servidor de control
                                 SocketManager.connect(host) { socketConnected ->
                                     isConnected = socketConnected
                                     statusText = if (socketConnected) {
@@ -111,31 +97,30 @@ fun MainScreen(
         }
     }
 
-    // Envío continuo de comandos por socket (actualizado para gamepad)
-    LaunchedEffect(isConnected) {
+    // Envío continuo de comandos por socket (CON SISTEMA DE VELOCIDAD)
+    LaunchedEffect(isConnected, speedMode) {
         if (isConnected) {
             Log.d("MainScreen", "Bucle de control iniciado")
 
             while (SocketManager.isConnected()) {
-                delay(50) // 20 comandos por segundo para movimiento más suave
+                delay(50)
 
-                // Leer el estado actual del gamepad directamente
                 val currentGamepadState = gamepadManager.state
 
-                // ========== DETERMINAR FUENTE DE INPUT ==========
-                // Prioridad: Gamepad > Joysticks táctiles
-
-                val (moveX, moveY, camX, camY) = if (currentGamepadState.isConnected) {
+                // ========== DETERMINAR FUENTE DE INPUT Y VELOCIDAD ==========
+                val (moveX, moveY, camX, camY, speedMultiplier) = if (currentGamepadState.isConnected) {
                     // ===== CONTROL POR GAMEPAD =====
-                    // Stick izquierdo para movimiento (invertir ambos ejes)
                     val gMoveX = -currentGamepadState.leftStickX
                     val gMoveY = currentGamepadState.leftStickY
-
-                    // Stick derecho para cámara (invertir solo X)
                     val gCamX = -currentGamepadState.rightStickX
-                    val gCamY = -currentGamepadState.rightStickY // Invertir Y
+                    val gCamY = -currentGamepadState.rightStickY
 
-                    listOf(gMoveX, gMoveY, gCamX, gCamY)
+                    // Calcular velocidad basada en gatillos L2/R2 (ANALÓGICO)
+                    val l2 = currentGamepadState.leftTrigger
+                    val r2 = currentGamepadState.rightTrigger
+                    val speedMult = SpeedMode.fromTriggers(l2, r2)
+
+                    listOf(gMoveX, gMoveY, gCamX, gCamY, speedMult)
                 } else {
                     // ===== CONTROL POR JOYSTICKS TÁCTILES =====
                     val tMoveX = (-joystickX / joystickRadius).coerceIn(-1f, 1f)
@@ -143,50 +128,43 @@ fun MainScreen(
                     val tCamX = (cameraX / joystickRadius).coerceIn(-1f, 1f)
                     val tCamY = (cameraY / joystickRadius).coerceIn(-1f, 1f)
 
-                    listOf(tMoveX, tMoveY, tCamX, tCamY)
+                    // Usar el modo de velocidad seleccionado en los botones
+                    val speedMult = speedMode.multiplier
+
+                    listOf(tMoveX, tMoveY, tCamX, tCamY, speedMult)
                 }
 
-                // ========== CONTROL DE MOVIMIENTO (MOTORES) ==========
+                // ========== CONTROL DE MOVIMIENTO CON LÍMITE DE VELOCIDAD ==========
                 val moveMagnitude = sqrt(moveX * moveX + moveY * moveY).coerceIn(0f, 1f)
 
-                // Zona muerta del 20% para movimiento
                 if (moveMagnitude > 0.2f) {
+                    // APLICAR MULTIPLICADOR DE VELOCIDAD
+                    val adjustedMoveX = moveX * speedMultiplier
+                    val adjustedMoveY = moveY * speedMultiplier
+
                     if (currentGamepadState.isConnected) {
-                        Log.d("GamepadControl", "Movimiento: x=${String.format("%.2f", moveX)}, y=${String.format("%.2f", moveY)}")
+                        Log.d("GamepadControl", "Mov: x=${String.format("%.2f", adjustedMoveX)}, y=${String.format("%.2f", adjustedMoveY)}, speed=${String.format("%.0f%%", speedMultiplier * 100)}")
                     }
-                    SocketManager.sendJoystickData(moveX, moveY)
+                    SocketManager.sendJoystickData(adjustedMoveX, adjustedMoveY)
                 } else {
                     SocketManager.sendJoystickData(0f, 0f)
                 }
 
-                // ========== CONTROL DE CÁMARA (TIPO FPS - VELOCIDAD INCREMENTAL) ==========
+                // ========== CONTROL DE CÁMARA ==========
                 val cameraMagnitude = sqrt(camX * camX + camY * camY)
 
-                // Zona muerta del 15%
                 if (cameraMagnitude > 0.15f) {
                     SocketManager.sendCameraData(camX, camY)
-                    if (currentGamepadState.isConnected) {
-                        Log.d("GamepadControl", "Cámara: x=${String.format("%.2f", camX)}, y=${String.format("%.2f", camY)}")
-                    }
                 } else {
                     SocketManager.sendCameraData(0f, 0f)
-                }
-
-                // ========== BOTONES DEL GAMEPAD ==========
-                if (currentGamepadState.isConnected) {
-                    // Botón B/Circle: Centrar cámara (solo al presionar, no mantener)
-                    // TODO: Implementar comando de centrado de cámara
-
-                    // Botón Start/Options: Desconectar (puedes implementar si quieres)
                 }
             }
         }
     }
 
-    // Limpieza al salir de la pantalla
+    // Limpieza al salir
     DisposableEffect(Unit) {
         onDispose {
-            // Limpiar al salir
             coroutineScope.launch {
                 SocketManager.stop()
                 delay(100)
@@ -206,14 +184,13 @@ fun MainScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Estado de conexión (actualizado para mostrar gamepad)
+            // ========== ESTADO DE CONEXIÓN ==========
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(text = statusText)
 
-                // Mostrar estado del gamepad
                 if (gamepadState.isConnected) {
                     Text(
                         text = "🎮 ${gamepadState.deviceName}",
@@ -227,23 +204,19 @@ fun MainScreen(
                 }
             }
 
-            // Stream de video (solo se muestra si está conectado)
+            // ========== STREAM DE VIDEO ==========
             if (isConnected) {
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
-                            // Configuración de WebView
                             settings.javaScriptEnabled = false
                             settings.loadWithOverviewMode = true
                             settings.useWideViewPort = true
                             settings.builtInZoomControls = false
                             settings.displayZoomControls = false
-
-                            // Eliminar bordes y fondos blancos
-                            setBackgroundColor(0x00000000) // Transparente
+                            setBackgroundColor(0x00000000)
                             setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
 
-                            // Mejor manejo de errores
                             webViewClient = object : WebViewClient() {
                                 override fun onReceivedError(
                                     view: WebView?,
@@ -252,19 +225,15 @@ fun MainScreen(
                                     failingUrl: String?
                                 ) {
                                     super.onReceivedError(view, errorCode, description, failingUrl)
-                                    Log.e("StreamError", "Error cargando stream: $description")
-                                    Log.e("StreamError", "URL: $failingUrl")
-                                    Log.e("StreamError", "Código: $errorCode")
+                                    Log.e("StreamError", "Error: $description")
                                 }
 
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
-                                    Log.d("StreamSuccess", "Stream cargado: $url")
+                                    Log.d("StreamSuccess", "Stream cargado")
                                 }
                             }
 
-                            Log.d("StreamURL", "Intentando cargar: $streamUrl")
-                            // Cargar el stream MJPEG
                             loadUrl(streamUrl)
                         }
                     },
@@ -273,59 +242,100 @@ fun MainScreen(
                         .height(300.dp)
                         .padding(horizontal = 16.dp),
                     update = { webView ->
-                        // Recargar si es necesario
                         if (webView.url != streamUrl) {
-                            Log.d("StreamURL", "Recargando stream: $streamUrl")
                             webView.loadUrl(streamUrl)
                         }
                     }
                 )
             }
 
-            // Joysticks de control táctil (se ocultan si hay gamepad conectado)
+            // ========== CONTROLES ==========
             if (!gamepadState.isConnected) {
-                Row(
+                // MODO TÁCTIL: Joysticks + Botones de velocidad
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
-                        .padding(bottom = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                        .padding(bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Joystick de control de movimiento
-                    JoyStick(
-                        Modifier.padding(16.dp),
-                        size = 150.dp,
-                        dotSize = 40.dp,
-                        backgroundImage = R.drawable.base,
-                        dotImage = R.drawable.top,
-                    ) { x: Float, y: Float ->
-                        joystickX = x
-                        joystickY = -y
+                    // Botones de velocidad
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        // Botón Lento
+                        FilterChip(
+                            selected = speedMode == SpeedMode.SLOW,
+                            onClick = { speedMode = SpeedMode.SLOW },
+                            label = { Text("${SpeedMode.SLOW.icon} ${SpeedMode.SLOW.displayName}") },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+
+                        // Botón Estándar
+                        FilterChip(
+                            selected = speedMode == SpeedMode.STANDARD,
+                            onClick = { speedMode = SpeedMode.STANDARD },
+                            label = { Text("${SpeedMode.STANDARD.icon} ${SpeedMode.STANDARD.displayName}") },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+
+                        // Botón Rápido
+                        FilterChip(
+                            selected = speedMode == SpeedMode.FAST,
+                            onClick = { speedMode = SpeedMode.FAST },
+                            label = { Text("${SpeedMode.FAST.icon} ${SpeedMode.FAST.displayName}") },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
                     }
 
-                    // Joystick de control de cámara
-                    JoyStick(
-                        Modifier.padding(16.dp),
-                        size = 150.dp,
-                        dotSize = 40.dp,
-                        backgroundImage = R.drawable.base,
-                        dotImage = R.drawable.top,
-                    ) { x: Float, y: Float ->
-                        cameraX = -x
-                        cameraY = y
+                    // Joysticks
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // Joystick de movimiento
+                        JoyStick(
+                            Modifier.padding(16.dp),
+                            size = 150.dp,
+                            dotSize = 40.dp,
+                            backgroundImage = R.drawable.base,
+                            dotImage = R.drawable.top,
+                        ) { x: Float, y: Float ->
+                            joystickX = x
+                            joystickY = -y
+                        }
+
+                        // Joystick de cámara
+                        JoyStick(
+                            Modifier.padding(16.dp),
+                            size = 150.dp,
+                            dotSize = 40.dp,
+                            backgroundImage = R.drawable.base,
+                            dotImage = R.drawable.top,
+                        ) { x: Float, y: Float ->
+                            cameraX = -x
+                            cameraY = y
+                        }
                     }
                 }
             } else {
-                // Mostrar indicadores del gamepad cuando está conectado
+                // MODO GAMEPAD: Indicadores
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Controles Gamepad:")
+                    Text("Controles Gamepad:", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text("🕹️ Stick Izq: Movimiento | Stick Der: Cámara")
-                    Text("🔘 Circle/B: Centrar cámara | L2/R2: Turbo")
+                    Text("⚡ L2: Reducir velocidad | R2: Aumentar velocidad")
+                    Text("🔘 B/Circle: Centrar cámara")
                 }
             }
         }
