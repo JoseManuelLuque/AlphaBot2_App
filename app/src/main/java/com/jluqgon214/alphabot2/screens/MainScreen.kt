@@ -1,4 +1,4 @@
-package com.jluqgon214.alphabot2.Screens
+package com.jluqgon214.alphabot2.screens
 
 import android.util.Log
 import android.webkit.WebView

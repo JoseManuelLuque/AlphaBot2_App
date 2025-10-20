@@ -81,4 +81,7 @@ dependencies {
 
     // Joystick library
     implementation("com.github.manalkaff:JetStick:1.2")
+
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 }
