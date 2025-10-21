@@ -57,8 +57,10 @@ def kill_existing_servers():
     # -f: Buscar en toda la línea de comandos, no solo el nombre del proceso
     # stderr=DEVNULL: Silenciar error si no hay procesos para matar
     # NOTA: NO matamos start_servers.py porque ese es el proceso actual
-    subprocess.run(["pkill", "-f", "joystick_server.py"], stderr=subprocess.DEVNULL)
-    subprocess.run(["pkill", "-f", "camera_stream.py"], stderr=subprocess.DEVNULL)
+    # Usar sudo porque los procesos fueron iniciados con sudo
+    subprocess.run(["sudo", "pkill", "-f", "joystick_server.py"], stderr=subprocess.DEVNULL)
+    subprocess.run(["sudo", "pkill", "-f", "camera_stream.py"], stderr=subprocess.DEVNULL)
+    subprocess.run(["sudo", "pkill", "-f", "ultrasonic_sensors.py"], stderr=subprocess.DEVNULL)
 
     # Esperar a que los procesos terminen limpiamente
     time.sleep(1)
@@ -197,9 +199,9 @@ def start_control_server():
     print(f"📝 Log: /tmp/joystick_server.log")
 
     try:
-        # Iniciar proceso en segundo plano
+        # Iniciar proceso en segundo plano con sudo (necesario para GPIO)
         process = subprocess.Popen(
-            ["python3", control_script],
+            ["sudo", "python3", control_script],
             stdout=open("/tmp/joystick_server.log", "w"),
             stderr=subprocess.STDOUT
         )

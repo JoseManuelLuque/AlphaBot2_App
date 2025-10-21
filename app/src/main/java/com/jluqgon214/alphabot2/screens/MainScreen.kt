@@ -68,24 +68,36 @@ fun MainScreen(
             if (sshConnected) {
                 statusText = "SSH conectado. Iniciando servidores..."
 
-                SSHManager.executeCommand("pkill -f joystick_server.py; pkill -f camera_stream.py; pkill -f start_servers.py") { _ ->
-                    coroutineScope.launch {
-                        delay(500)
+                // start_servers.py ya se encarga de matar procesos antiguos
+                // Usar sudo porque los scripts necesitan acceso a GPIO
+                SSHManager.executeCommand("sudo python3 '/home/pi/Android App/start_servers.py' 2>&1") { result ->
+                    Log.d("ServerStart", "Resultado inicio: $result")
 
-                        SSHManager.executeCommand("python3 '/home/pi/Android App/start_servers.py'") { result ->
-                            Log.d("ServerStart", "Resultado inicio: $result")
-                            statusText = "Servidores iniciados. Conectando..."
+                    // Verificar si hubo errores en el inicio
+                    if (result.contains("❌ ERROR CRÍTICO") || result.contains("INACTIVO")) {
+                        statusText = "⚠️ Error al iniciar servidores. Revisando logs..."
+                        Log.e("ServerStart", "Fallo detectado en inicio de servidores")
 
-                            coroutineScope.launch {
-                                delay(3000)
+                        // Leer logs para diagnóstico
+                        coroutineScope.launch {
+                            delay(500)
+                            SSHManager.executeCommand("echo '=== LOG JOYSTICK SERVER ===' && cat /tmp/joystick_server.log 2>&1 && echo '\n=== LOG CAMERA STREAM ===' && cat /tmp/camera_stream.log 2>&1") { logs ->
+                                Log.e("ServerLogs", "Logs de error:\n$logs")
+                                statusText = "❌ Servidores fallaron. Ver logs en Logcat"
+                            }
+                        }
+                    } else {
+                        statusText = "Servidores iniciados. Conectando..."
 
-                                SocketManager.connect(host) { socketConnected ->
-                                    isConnected = socketConnected
-                                    statusText = if (socketConnected) {
-                                        "✅ Conectado - Control activo"
-                                    } else {
-                                        "❌ Error conectando al servidor"
-                                    }
+                        coroutineScope.launch {
+                            delay(3000)
+
+                            SocketManager.connect(host) { socketConnected ->
+                                isConnected = socketConnected
+                                statusText = if (socketConnected) {
+                                    "✅ Conectado - Control activo"
+                                } else {
+                                    "❌ Error conectando al servidor"
                                 }
                             }
                         }
@@ -214,8 +226,10 @@ fun MainScreen(
                             settings.useWideViewPort = true
                             settings.builtInZoomControls = false
                             settings.displayZoomControls = false
-                            setBackgroundColor(0x00000000)
-                            setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+                            settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+                            settings.mediaPlaybackRequiresUserGesture = false
+                            setBackgroundColor(0xFF1E1E1E.toInt())
+                            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
 
                             webViewClient = object : WebViewClient() {
                                 override fun onReceivedError(
@@ -225,15 +239,21 @@ fun MainScreen(
                                     failingUrl: String?
                                 ) {
                                     super.onReceivedError(view, errorCode, description, failingUrl)
-                                    Log.e("StreamError", "Error: $description")
+                                    Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description, URL: $failingUrl")
                                 }
 
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
-                                    Log.d("StreamSuccess", "Stream cargado")
+                                    Log.d("StreamSuccess", "Stream cargado correctamente desde: $url")
+                                }
+
+                                override fun onLoadResource(view: WebView?, url: String?) {
+                                    super.onLoadResource(view, url)
+                                    Log.d("StreamLoading", "Cargando recurso: $url")
                                 }
                             }
 
+                            Log.d("StreamInit", "Iniciando carga de stream desde: $streamUrl")
                             loadUrl(streamUrl)
                         }
                     },
@@ -243,6 +263,7 @@ fun MainScreen(
                         .padding(horizontal = 16.dp),
                     update = { webView ->
                         if (webView.url != streamUrl) {
+                            Log.d("StreamUpdate", "Actualizando URL del stream a: $streamUrl")
                             webView.loadUrl(streamUrl)
                         }
                     }
