@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        val host = "10.42.0.115"
+        val host = "10.42.0.101"
         val user = "pi"
         val password = "raspberry"
 

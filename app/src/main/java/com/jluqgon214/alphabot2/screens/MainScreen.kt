@@ -154,9 +154,7 @@ fun MainScreen(
                     val adjustedMoveX = moveX * speedMultiplier
                     val adjustedMoveY = moveY * speedMultiplier
 
-                    if (currentGamepadState.isConnected) {
-                        Log.d("GamepadControl", "Mov: x=${String.format("%.2f", adjustedMoveX)}, y=${String.format("%.2f", adjustedMoveY)}, speed=${String.format("%.0f%%", speedMultiplier * 100)}")
-                    }
+                    // Log eliminado para mejorar rendimiento (se ejecutaba cada ~50ms)
                     SocketManager.sendJoystickData(adjustedMoveX, adjustedMoveY)
                 } else {
                     SocketManager.sendJoystickData(0f, 0f)

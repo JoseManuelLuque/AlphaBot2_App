@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
 import com.jluqgon214.alphabot2.screens.ConfigScreen
-import com.jluqgon214.alphabot2.screens.MainScreen
+import com.jluqgon214.alphabot2.screens.MainScreenWithNav
 
 @Composable
 fun NavGraph(
@@ -30,7 +30,7 @@ fun NavGraph(
             )
         }
 
-        // Pantalla principal de control
+        // Pantalla principal de control con Bottom Navigation
         composable(
             route = Screen.Main.route,
             arguments = listOf(
@@ -43,7 +43,7 @@ fun NavGraph(
             val user = backStackEntry.arguments?.getString("user") ?: ""
             val password = backStackEntry.arguments?.getString("password") ?: ""
 
-            MainScreen(
+            MainScreenWithNav(
                 host = host,
                 user = user,
                 password = password,

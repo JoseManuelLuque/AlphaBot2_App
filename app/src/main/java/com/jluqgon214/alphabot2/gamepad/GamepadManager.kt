@@ -28,7 +28,7 @@ class GamepadManager {
                 if (sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
                     sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) {
                     gameControllerDeviceIds.add(deviceId)
-                    Log.d("GamepadManager", "Gamepad encontrado: ${this.name} (ID: $deviceId)")
+                    // Log eliminado para evitar spam cada 2 segundos
                 }
             }
         }
