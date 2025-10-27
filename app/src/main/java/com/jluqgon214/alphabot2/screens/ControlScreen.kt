@@ -4,13 +4,10 @@ import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -37,12 +34,12 @@ fun MainScreen(
     var cameraAvailable by remember { mutableStateOf(true) } // Asumir cámara disponible por defecto
 
     // Variables para joystick táctil de movimiento
-    var joystickX by remember { mutableStateOf(0f) }
-    var joystickY by remember { mutableStateOf(0f) }
+    var joystickX by remember { mutableFloatStateOf(0f) }
+    var joystickY by remember { mutableFloatStateOf(0f) }
 
     // Variables para joystick táctil de cámara
-    var cameraX by remember { mutableStateOf(0f) }
-    var cameraY by remember { mutableStateOf(0f) }
+    var cameraX by remember { mutableFloatStateOf(0f) }
+    var cameraY by remember { mutableFloatStateOf(0f) }
 
     // ===== MODO DE VELOCIDAD PARA CONTROL TÁCTIL =====
     var speedMode by remember { mutableStateOf(SpeedMode.STANDARD) }
@@ -52,8 +49,8 @@ fun MainScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Radio del joystick para normalizar (120dp / 2 = 60)
-    val joystickRadius = 60f
+    // Radio del joystick para normalizar (150dp / 2 = 75)
+    val joystickRadius = 75f
 
     // URL del stream de video
     val streamUrl = "http://$host:8080/stream.mjpg"
@@ -201,179 +198,141 @@ fun MainScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // ========== TÍTULO ==========
-        Text(
-            text = "Control del Robot",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        // ========== ESTADO DE CONEXIÓN ==========
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isConnected) 
-                    MaterialTheme.colorScheme.primaryContainer 
-                else 
-                    MaterialTheme.colorScheme.errorContainer
-            )
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // ========== ESTADO DE CONEXIÓN ==========
             Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(16.dp)
             ) {
-                Text(
-                    text = statusText,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                
+                Text(text = statusText)
+
                 if (gamepadState.isConnected) {
                     Text(
                         text = "🎮 ${gamepadState.deviceName}",
-                        modifier = Modifier.padding(top = 4.dp),
-                        fontSize = 14.sp
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 } else {
                     Text(
                         text = "🎮 Mando no detectado - Usando táctil",
-                        modifier = Modifier.padding(top = 4.dp),
-                        fontSize = 14.sp
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
-        }
 
-        // ========== STREAM DE VIDEO ==========
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "📷 Vista de Cámara",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                
-                // Intentar mostrar cámara solo si está disponible
-                if (cameraAvailable) {
-                    AndroidView(
-                        factory = { context ->
-                            WebView(context).apply {
-                                settings.javaScriptEnabled = false
-                                settings.loadWithOverviewMode = true
-                                settings.useWideViewPort = true
-                                settings.builtInZoomControls = false
-                                settings.displayZoomControls = false
-                                settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
-                                settings.mediaPlaybackRequiresUserGesture = false
-                                setBackgroundColor(0xFF1E1E1E.toInt())
-                                setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+            // ========== STREAM DE VIDEO ==========
+            // Intentar mostrar cámara solo si está disponible
+            if (cameraAvailable) {
+                AndroidView(
+                    factory = { context ->
+                        WebView(context).apply {
+                            settings.javaScriptEnabled = false
+                            settings.loadWithOverviewMode = true
+                            settings.useWideViewPort = true
+                            settings.builtInZoomControls = false
+                            settings.displayZoomControls = false
+                            settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+                            settings.mediaPlaybackRequiresUserGesture = false
+                            setBackgroundColor(0xFF1E1E1E.toInt())
+                            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
 
-                                webViewClient = object : WebViewClient() {
-                                    override fun onReceivedError(
-                                        view: WebView?,
-                                        errorCode: Int,
-                                        description: String?,
-                                        failingUrl: String?
-                                    ) {
-                                        super.onReceivedError(view, errorCode, description, failingUrl)
-                                        Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description")
-                                        // No desactivar la cámara, puede ser temporal
-                                    }
-
-                                    override fun onPageFinished(view: WebView?, url: String?) {
-                                        super.onPageFinished(view, url)
-                                        Log.d("StreamSuccess", "Stream cargado correctamente")
-                                    }
-                                }
-
-                                Log.d("StreamInit", "Iniciando carga de stream desde: $streamUrl")
-                                loadUrl(streamUrl)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        update = { webView ->
-                            if (webView.url != streamUrl) {
-                                Log.d("StreamUpdate", "Actualizando URL del stream a: $streamUrl")
-                                webView.loadUrl(streamUrl)
-                            }
-                        }
-                    )
-                } else {
-                    // Mostrar mensaje si la cámara no está disponible
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text("📷 Cámara no disponible", fontSize = 18.sp)
-                                Text("Los controles siguen funcionando", fontSize = 14.sp)
-                                Button(
-                                    onClick = { cameraAvailable = true }
+                            webViewClient = object : WebViewClient() {
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    errorCode: Int,
+                                    description: String?,
+                                    failingUrl: String?
                                 ) {
-                                    Text("🔄 Reintentar")
+                                    super.onReceivedError(view, errorCode, description, failingUrl)
+                                    Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description")
+                                    // No desactivar la cámara, puede ser temporal
                                 }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    Log.d("StreamSuccess", "Stream cargado correctamente")
+                                }
+                            }
+
+                            Log.d("StreamInit", "Iniciando carga de stream desde: $streamUrl")
+                            loadUrl(streamUrl)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .padding(horizontal = 16.dp),
+                    update = { webView ->
+                        if (webView.url != streamUrl) {
+                            Log.d("StreamUpdate", "Actualizando URL del stream a: $streamUrl")
+                            webView.loadUrl(streamUrl)
+                        }
+                    }
+                )
+            } else {
+                // Mostrar mensaje si la cámara no está disponible
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("📷 Cámara no disponible", fontSize = 18.sp)
+                            Text("Los controles siguen funcionando", fontSize = 14.sp)
+                            Button(
+                                onClick = { cameraAvailable = true }
+                            ) {
+                                Text("🔄 Reintentar")
                             }
                         }
                     }
                 }
             }
-        }
 
-        // ========== CONTROLES TÁCTILES O GAMEPAD ==========
-        if (!gamepadState.isConnected) {
-            // MODO TÁCTIL: Botones de velocidad + Joysticks
-            
-            // Card de velocidad
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // ========== CONTROLES ==========
+            // Los controles SIEMPRE están disponibles, conectado o no
+            if (!gamepadState.isConnected) {
+                // MODO TÁCTIL: Joysticks + Botones de velocidad
                 Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "⚡ Modo de Velocidad",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    
+                    // Botones de velocidad
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         // Botón Lento
                         FilterChip(
                             selected = speedMode == SpeedMode.SLOW,
                             onClick = { speedMode = SpeedMode.SLOW },
                             label = { Text("${SpeedMode.SLOW.icon} ${SpeedMode.SLOW.displayName}") },
-                            modifier = Modifier.weight(1f),
-                            enabled = isConnected
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            enabled = isConnected // Solo habilitado si hay conexión
                         )
 
                         // Botón Estándar
@@ -381,8 +340,8 @@ fun MainScreen(
                             selected = speedMode == SpeedMode.STANDARD,
                             onClick = { speedMode = SpeedMode.STANDARD },
                             label = { Text("${SpeedMode.STANDARD.icon} ${SpeedMode.STANDARD.displayName}") },
-                            modifier = Modifier.weight(1f),
-                            enabled = isConnected
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            enabled = isConnected // Solo habilitado si hay conexión
                         )
 
                         // Botón Rápido
@@ -390,30 +349,16 @@ fun MainScreen(
                             selected = speedMode == SpeedMode.FAST,
                             onClick = { speedMode = SpeedMode.FAST },
                             label = { Text("${SpeedMode.FAST.icon} ${SpeedMode.FAST.displayName}") },
-                            modifier = Modifier.weight(1f),
-                            enabled = isConnected
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            enabled = isConnected // Solo habilitado si hay conexión
                         )
                     }
-                }
-            }
-            
-            // Card de controles manuales
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "🕹️ Controles Manuales",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    
-                    // Joysticks
+
+                    // Joysticks - SIEMPRE VISIBLES
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         // Joystick de movimiento
@@ -421,9 +366,9 @@ fun MainScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             JoyStick(
-                                Modifier.padding(8.dp),
-                                size = 120.dp,
-                                dotSize = 30.dp,
+                                Modifier.padding(16.dp),
+                                size = 150.dp,
+                                dotSize = 40.dp,
                                 backgroundImage = R.drawable.base,
                                 dotImage = R.drawable.top,
                             ) { x: Float, y: Float ->
@@ -438,9 +383,9 @@ fun MainScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             JoyStick(
-                                Modifier.padding(8.dp),
-                                size = 120.dp,
-                                dotSize = 30.dp,
+                                Modifier.padding(16.dp),
+                                size = 150.dp,
+                                dotSize = 40.dp,
                                 backgroundImage = R.drawable.base,
                                 dotImage = R.drawable.top,
                             ) { x: Float, y: Float ->
@@ -453,43 +398,29 @@ fun MainScreen(
 
                     // Mensaje si no hay conexión
                     if (!isConnected) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            )
-                        ) {
-                            Text(
-                                text = "⚠️ Sin conexión - Esperando servidor...",
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
+                        Text(
+                            text = "⚠️ Sin conexión - Esperando servidor...",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
-            }
-        } else {
-            // MODO GAMEPAD: Indicadores
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
+            } else {
+                // MODO GAMEPAD: Indicadores
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "🎮 Controles Gamepad",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text("🕹️ Stick Izq: Movimiento | Stick Der: Cámara", fontSize = 14.sp)
-                    Text("⚡ L2: Reducir velocidad | R2: Aumentar velocidad", fontSize = 14.sp)
-                    Text("🔘 B/Circle: Centrar cámara", fontSize = 14.sp)
+                    Text("Controles Gamepad:", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("🕹️ Stick Izq: Movimiento | Stick Der: Cámara")
+                    Text("⚡ L2: Reducir velocidad | R2: Aumentar velocidad")
+                    Text("🔘 B/Circle: Centrar cámara")
                 }
             }
         }
     }
-}
 }
