@@ -57,7 +57,8 @@ fun MainScreenWithNav(
                 LedsScreen(
                     host = host,
                     user = user,
-                    password = password
+                    password = password,
+                    innerPadding = innerPadding
                 )
             }
 
@@ -66,7 +67,8 @@ fun MainScreenWithNav(
                 LineFollowScreen(
                     host = host,
                     user = user,
-                    password = password
+                    password = password,
+                    innerPadding = innerPadding
                 )
             }
         }

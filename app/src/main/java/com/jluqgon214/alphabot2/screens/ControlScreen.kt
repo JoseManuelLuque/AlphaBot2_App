@@ -31,6 +31,7 @@ fun MainScreen(
 ) {
     var statusText by remember { mutableStateOf("Iniciando...") }
     var isConnected by remember { mutableStateOf(false) }
+    var cameraAvailable by remember { mutableStateOf(true) } // Asumir cámara disponible por defecto
 
     // Variables para joystick táctil de movimiento
     var joystickX by remember { mutableStateOf(0f) }
@@ -73,32 +74,45 @@ fun MainScreen(
                 SSHManager.executeCommand("sudo python3 '/home/pi/Android App/start_servers.py' 2>&1") { result ->
                     Log.d("ServerStart", "Resultado inicio: $result")
 
-                    // Verificar si hubo errores en el inicio
-                    if (result.contains("❌ ERROR CRÍTICO") || result.contains("INACTIVO")) {
-                        statusText = "⚠️ Error al iniciar servidores. Revisando logs..."
-                        Log.e("ServerStart", "Fallo detectado en inicio de servidores")
+                    // Verificar estado de los servidores
+                    val cameraInactive = result.contains("❌ INACTIVO") || result.contains("Cámara no detectada")
+                    val controlActive = result.contains("Servidor de control:  ✅ ACTIVO")
+
+                    if (cameraInactive) {
+                        Log.w("ServerStart", "Cámara no disponible, pero continuando con control")
+                        cameraAvailable = false
+                    }
+
+                    if (controlActive) {
+                        statusText = "Servidor de control iniciado. Conectando..."
+
+                        // INTENTAR CONECTAR AL SOCKET SIEMPRE, aunque la cámara falle
+                        coroutineScope.launch {
+                            delay(2000) // Dar tiempo al servidor
+
+                            SocketManager.connect(host) { socketConnected ->
+                                isConnected = socketConnected
+                                statusText = if (socketConnected) {
+                                    if (cameraAvailable) {
+                                        "✅ Conectado - Control activo"
+                                    } else {
+                                        "✅ Control activo (Cámara no disponible)"
+                                    }
+                                } else {
+                                    "❌ Error conectando al servidor de control"
+                                }
+                            }
+                        }
+                    } else {
+                        // Solo falla si NO hay servidor de control
+                        statusText = "❌ Servidor de control no inició"
+                        Log.e("ServerStart", "Servidor de control no disponible")
 
                         // Leer logs para diagnóstico
                         coroutineScope.launch {
                             delay(500)
                             SSHManager.executeCommand("echo '=== LOG JOYSTICK SERVER ===' && cat /tmp/joystick_server.log 2>&1 && echo '\n=== LOG CAMERA STREAM ===' && cat /tmp/camera_stream.log 2>&1") { logs ->
                                 Log.e("ServerLogs", "Logs de error:\n$logs")
-                                statusText = "❌ Servidores fallaron. Ver logs en Logcat"
-                            }
-                        }
-                    } else {
-                        statusText = "Servidores iniciados. Conectando..."
-
-                        coroutineScope.launch {
-                            delay(3000)
-
-                            SocketManager.connect(host) { socketConnected ->
-                                isConnected = socketConnected
-                                statusText = if (socketConnected) {
-                                    "✅ Conectado - Control activo"
-                                } else {
-                                    "❌ Error conectando al servidor"
-                                }
                             }
                         }
                     }
@@ -215,7 +229,8 @@ fun MainScreen(
             }
 
             // ========== STREAM DE VIDEO ==========
-            if (isConnected) {
+            // Intentar mostrar cámara solo si está disponible
+            if (cameraAvailable) {
                 AndroidView(
                     factory = { context ->
                         WebView(context).apply {
@@ -237,17 +252,13 @@ fun MainScreen(
                                     failingUrl: String?
                                 ) {
                                     super.onReceivedError(view, errorCode, description, failingUrl)
-                                    Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description, URL: $failingUrl")
+                                    Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description")
+                                    // No desactivar la cámara, puede ser temporal
                                 }
 
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     super.onPageFinished(view, url)
-                                    Log.d("StreamSuccess", "Stream cargado correctamente desde: $url")
-                                }
-
-                                override fun onLoadResource(view: WebView?, url: String?) {
-                                    super.onLoadResource(view, url)
-                                    Log.d("StreamLoading", "Cargando recurso: $url")
+                                    Log.d("StreamSuccess", "Stream cargado correctamente")
                                 }
                             }
 
@@ -266,9 +277,39 @@ fun MainScreen(
                         }
                     }
                 )
+            } else {
+                // Mostrar mensaje si la cámara no está disponible
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .padding(horizontal = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("📷 Cámara no disponible", fontSize = 18.sp)
+                            Text("Los controles siguen funcionando", fontSize = 14.sp)
+                            Button(
+                                onClick = { cameraAvailable = true }
+                            ) {
+                                Text("🔄 Reintentar")
+                            }
+                        }
+                    }
+                }
             }
 
             // ========== CONTROLES ==========
+            // Los controles SIEMPRE están disponibles, conectado o no
             if (!gamepadState.isConnected) {
                 // MODO TÁCTIL: Joysticks + Botones de velocidad
                 Column(
@@ -290,7 +331,8 @@ fun MainScreen(
                             selected = speedMode == SpeedMode.SLOW,
                             onClick = { speedMode = SpeedMode.SLOW },
                             label = { Text("${SpeedMode.SLOW.icon} ${SpeedMode.SLOW.displayName}") },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            enabled = isConnected // Solo habilitado si hay conexión
                         )
 
                         // Botón Estándar
@@ -298,7 +340,8 @@ fun MainScreen(
                             selected = speedMode == SpeedMode.STANDARD,
                             onClick = { speedMode = SpeedMode.STANDARD },
                             label = { Text("${SpeedMode.STANDARD.icon} ${SpeedMode.STANDARD.displayName}") },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            enabled = isConnected // Solo habilitado si hay conexión
                         )
 
                         // Botón Rápido
@@ -306,11 +349,12 @@ fun MainScreen(
                             selected = speedMode == SpeedMode.FAST,
                             onClick = { speedMode = SpeedMode.FAST },
                             label = { Text("${SpeedMode.FAST.icon} ${SpeedMode.FAST.displayName}") },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            enabled = isConnected // Solo habilitado si hay conexión
                         )
                     }
 
-                    // Joysticks
+                    // Joysticks - SIEMPRE VISIBLES
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -318,28 +362,48 @@ fun MainScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         // Joystick de movimiento
-                        JoyStick(
-                            Modifier.padding(16.dp),
-                            size = 150.dp,
-                            dotSize = 40.dp,
-                            backgroundImage = R.drawable.base,
-                            dotImage = R.drawable.top,
-                        ) { x: Float, y: Float ->
-                            joystickX = x
-                            joystickY = -y
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            JoyStick(
+                                Modifier.padding(16.dp),
+                                size = 150.dp,
+                                dotSize = 40.dp,
+                                backgroundImage = R.drawable.base,
+                                dotImage = R.drawable.top,
+                            ) { x: Float, y: Float ->
+                                joystickX = x
+                                joystickY = -y
+                            }
+                            Text("🤖 Robot", fontSize = 12.sp)
                         }
 
                         // Joystick de cámara
-                        JoyStick(
-                            Modifier.padding(16.dp),
-                            size = 150.dp,
-                            dotSize = 40.dp,
-                            backgroundImage = R.drawable.base,
-                            dotImage = R.drawable.top,
-                        ) { x: Float, y: Float ->
-                            cameraX = -x
-                            cameraY = y
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            JoyStick(
+                                Modifier.padding(16.dp),
+                                size = 150.dp,
+                                dotSize = 40.dp,
+                                backgroundImage = R.drawable.base,
+                                dotImage = R.drawable.top,
+                            ) { x: Float, y: Float ->
+                                cameraX = -x
+                                cameraY = y
+                            }
+                            Text("📹 Cámara", fontSize = 12.sp)
                         }
+                    }
+
+                    // Mensaje si no hay conexión
+                    if (!isConnected) {
+                        Text(
+                            text = "⚠️ Sin conexión - Esperando servidor...",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
             } else {

@@ -14,7 +14,7 @@ fun ConfigScreen(
     onConnect: (String, String, String) -> Unit
 ) {
     // IP por defecto (placeholder)
-    var ipAddress by remember { mutableStateOf("10.42.0.115") }
+    var ipAddress by remember { mutableStateOf("10.42.0.101") }
     var username by remember { mutableStateOf("pi") }
     var password by remember { mutableStateOf("raspberry") }
 
@@ -57,7 +57,7 @@ fun ConfigScreen(
                     value = ipAddress,
                     onValueChange = { ipAddress = it },
                     label = { Text("Dirección IP") },
-                    placeholder = { Text("10.42.0.115") },
+                    placeholder = { Text("10.42.0.101") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
