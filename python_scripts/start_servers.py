@@ -286,11 +286,16 @@ def main():
     camera_ok = check_camera()
 
     # ===== PASO 3: INICIAR SERVIDOR DE STREAMING =====
+    # INTENTAR SIEMPRE iniciar el servidor, aunque la detección falle
+    # A veces vcgencmd da falsos negativos pero la cámara funciona
     streaming_ok = False
     if camera_ok:
+        print("✅ Cámara detectada, iniciando servidor...\n")
         streaming_ok = start_camera_stream()
     else:
-        print("⚠️  Saltando servidor de streaming (cámara no disponible)\n")
+        print("⚠️  Cámara no detectada por vcgencmd, pero intentando de todos modos...")
+        print("    (A veces funciona aunque no se detecte correctamente)\n")
+        streaming_ok = start_camera_stream()
 
     # ===== PASO 4: INICIAR SERVIDOR DE CONTROL =====
     control_ok = start_control_server()

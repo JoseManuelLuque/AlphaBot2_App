@@ -55,6 +55,7 @@ fun MainScreen(
     // URL del stream de video
     val streamUrl = "http://$host:8080/stream.mjpg"
 
+
     // Detectar gamepads periódicamente
     LaunchedEffect(Unit) {
         while (true) {
@@ -229,54 +230,91 @@ fun MainScreen(
             }
 
             // ========== STREAM DE VIDEO ==========
-            // Intentar mostrar cámara solo si está disponible
             if (cameraAvailable) {
-                AndroidView(
-                    factory = { context ->
-                        WebView(context).apply {
-                            settings.javaScriptEnabled = false
-                            settings.loadWithOverviewMode = true
-                            settings.useWideViewPort = true
-                            settings.builtInZoomControls = false
-                            settings.displayZoomControls = false
-                            settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
-                            settings.mediaPlaybackRequiresUserGesture = false
-                            setBackgroundColor(0xFF1E1E1E.toInt())
-                            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                // Variable para forzar recarga del WebView
+                var reloadTrigger by remember { mutableIntStateOf(0) }
 
-                            webViewClient = object : WebViewClient() {
-                                override fun onReceivedError(
-                                    view: WebView?,
-                                    errorCode: Int,
-                                    description: String?,
-                                    failingUrl: String?
-                                ) {
-                                    super.onReceivedError(view, errorCode, description, failingUrl)
-                                    Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description")
-                                    // No desactivar la cámara, puede ser temporal
-                                }
-
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    super.onPageFinished(view, url)
-                                    Log.d("StreamSuccess", "Stream cargado correctamente")
-                                }
-                            }
-
-                            Log.d("StreamInit", "Iniciando carga de stream desde: $streamUrl")
-                            loadUrl(streamUrl)
-                        }
-                    },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
-                        .padding(horizontal = 16.dp),
-                    update = { webView ->
-                        if (webView.url != streamUrl) {
-                            Log.d("StreamUpdate", "Actualizando URL del stream a: $streamUrl")
-                            webView.loadUrl(streamUrl)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    AndroidView(
+                        factory = { context ->
+                            WebView(context).apply {
+                                // Configuración completa para MJPEG streaming
+                                settings.apply {
+                                    javaScriptEnabled = false
+                                    loadWithOverviewMode = true
+                                    useWideViewPort = true
+                                    builtInZoomControls = false
+                                    displayZoomControls = false
+                                    cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+                                    mediaPlaybackRequiresUserGesture = false
+
+                                    // Configuraciones adicionales para streaming
+                                    domStorageEnabled = true
+                                    databaseEnabled = false
+                                    allowFileAccess = false
+                                    allowContentAccess = false
+                                    setSupportZoom(false)
+
+                                    // Configuraciones de red para streaming
+                                    loadsImagesAutomatically = true
+                                    blockNetworkImage = false
+                                    blockNetworkLoads = false
+                                    mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                }
+
+                                setBackgroundColor(0xFF1E1E1E.toInt())
+                                setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
+                                webViewClient = object : WebViewClient() {
+                                    override fun onReceivedError(
+                                        view: WebView?,
+                                        errorCode: Int,
+                                        description: String?,
+                                        failingUrl: String?
+                                    ) {
+                                        Log.e("StreamError", "Error cargando stream - Codigo: $errorCode, Desc: $description")
+                                    }
+
+                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                        super.onPageFinished(view, url)
+                                        Log.d("StreamSuccess", "Stream cargado correctamente")
+                                    }
+                                }
+
+                                Log.d("StreamInit", "Iniciando carga de stream desde: $streamUrl")
+                                loadUrl(streamUrl)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        update = { webView ->
+                            // Se actualiza cuando cambia reloadTrigger o streamUrl
+                            if (webView.url != streamUrl || reloadTrigger > 0) {
+                                Log.d("StreamUpdate", "Recargando stream desde: $streamUrl")
+                                webView.loadUrl(streamUrl)
+                            }
                         }
+                    )
+
+                    // Botón flotante para recargar
+                    FloatingActionButton(
+                        onClick = {
+                            reloadTrigger++
+                            Log.d("StreamReload", "Recarga manual solicitada")
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(40.dp),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text("🔄", fontSize = 18.sp)
                     }
-                )
+                }
             } else {
                 // Mostrar mensaje si la cámara no está disponible
                 Card(
@@ -394,16 +432,6 @@ fun MainScreen(
                             }
                             Text("📹 Cámara", fontSize = 12.sp)
                         }
-                    }
-
-                    // Mensaje si no hay conexión
-                    if (!isConnected) {
-                        Text(
-                            text = "⚠️ Sin conexión - Esperando servidor...",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
                     }
                 }
             } else {
