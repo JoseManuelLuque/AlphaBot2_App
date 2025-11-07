@@ -24,8 +24,8 @@ fun NavGraph(
         // Pantalla de configuración (inicial)
         composable(route = Screen.Config.route) {
             ConfigScreen(
-                onConnect = { host, user, password ->
-                    navController.navigate(Screen.Main.createRoute(host, user, password))
+                onConnect = { host, user, password, forceTouchControl ->
+                    navController.navigate(Screen.Main.createRoute(host, user, password, forceTouchControl))
                 }
             )
         }
@@ -36,19 +36,22 @@ fun NavGraph(
             arguments = listOf(
                 navArgument("host") { type = NavType.StringType },
                 navArgument("user") { type = NavType.StringType },
-                navArgument("password") { type = NavType.StringType }
+                navArgument("password") { type = NavType.StringType },
+                navArgument("forceTouchControl") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
             val host = backStackEntry.arguments?.getString("host") ?: ""
             val user = backStackEntry.arguments?.getString("user") ?: ""
             val password = backStackEntry.arguments?.getString("password") ?: ""
+            val forceTouchControl = backStackEntry.arguments?.getBoolean("forceTouchControl") ?: false
 
             MainScreenWithNav(
                 host = host,
                 user = user,
                 password = password,
                 innerPadding = innerPadding,
-                gamepadManager = gamepadManager
+                gamepadManager = gamepadManager,
+                forceTouchControl = forceTouchControl
             )
         }
     }

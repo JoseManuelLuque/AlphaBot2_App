@@ -6,9 +6,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
     object Config : Screen("config")
-    object Main : Screen("main/{host}/{user}/{password}") {
-        fun createRoute(host: String, user: String, password: String): String {
-            return "main/$host/$user/$password"
+    object Main : Screen("main/{host}/{user}/{password}/{forceTouchControl}") {
+        fun createRoute(host: String, user: String, password: String, forceTouchControl: Boolean): String {
+            return "main/$host/$user/$password/$forceTouchControl"
         }
     }
 }

@@ -11,12 +11,13 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun ConfigScreen(
-    onConnect: (String, String, String) -> Unit
+    onConnect: (String, String, String, Boolean) -> Unit
 ) {
     // IP por defecto (placeholder)
-    var ipAddress by remember { mutableStateOf("10.42.0.101") }
+    var ipAddress by remember { mutableStateOf("192.168.100.101") }
     var username by remember { mutableStateOf("pi") }
     var password by remember { mutableStateOf("raspberry") }
+    var forceTouchControl by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -57,7 +58,7 @@ fun ConfigScreen(
                     value = ipAddress,
                     onValueChange = { ipAddress = it },
                     label = { Text("Dirección IP") },
-                    placeholder = { Text("10.42.0.101") },
+                    placeholder = { Text("192.168.100.10") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -84,10 +85,47 @@ fun ConfigScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Toggle para forzar control táctil
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "📱 Forzar Control Táctil",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Ignora gamepad/Bluetooth",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = forceTouchControl,
+                            onCheckedChange = { forceTouchControl = it }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // Botón conectar
                 Button(
                     onClick = {
-                        onConnect(ipAddress, username, password)
+                        onConnect(ipAddress, username, password, forceTouchControl)
                     },
                     modifier = Modifier
                         .fillMaxWidth()

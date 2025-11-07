@@ -18,7 +18,8 @@ fun MainScreenWithNav(
     user: String,
     password: String,
     innerPadding: PaddingValues,
-    gamepadManager: GamepadManager
+    gamepadManager: GamepadManager,
+    forceTouchControl: Boolean
 ) {
     val navController = rememberNavController()
 
@@ -39,7 +40,8 @@ fun MainScreenWithNav(
                     user = user,
                     password = password,
                     innerPadding = innerPadding,
-                    gamepadManager = gamepadManager
+                    gamepadManager = gamepadManager,
+                    forceTouchControl = forceTouchControl
                 )
             }
 

@@ -27,7 +27,8 @@ fun MainScreen(
     user: String,
     password: String,
     innerPadding: PaddingValues,
-    gamepadManager: GamepadManager
+    gamepadManager: GamepadManager,
+    forceTouchControl: Boolean = false
 ) {
     var statusText by remember { mutableStateOf("Iniciando...") }
     var isConnected by remember { mutableStateOf(false) }
@@ -44,8 +45,9 @@ fun MainScreen(
     // ===== MODO DE VELOCIDAD PARA CONTROL TÁCTIL =====
     var speedMode by remember { mutableStateOf(SpeedMode.STANDARD) }
 
-    // Estado del gamepad
+    // Estado del gamepad (puede ser forzado a desconectado)
     val gamepadState = gamepadManager.state
+    val useGamepad = !forceTouchControl && gamepadState.isConnected
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -125,7 +127,7 @@ fun MainScreen(
     }
 
     // Envío continuo de comandos por socket (CON SISTEMA DE VELOCIDAD)
-    LaunchedEffect(isConnected, speedMode) {
+    LaunchedEffect(isConnected, speedMode, forceTouchControl) {
         if (isConnected) {
             Log.d("MainScreen", "Bucle de control iniciado")
 
@@ -133,9 +135,10 @@ fun MainScreen(
                 delay(50)
 
                 val currentGamepadState = gamepadManager.state
+                val currentUseGamepad = !forceTouchControl && currentGamepadState.isConnected
 
                 // ========== DETERMINAR FUENTE DE INPUT Y VELOCIDAD ==========
-                val (moveX, moveY, camX, camY, speedMultiplier) = if (currentGamepadState.isConnected) {
+                val (moveX, moveY, camX, camY, speedMultiplier) = if (currentUseGamepad) {
                     // ===== CONTROL POR GAMEPAD =====
                     val gMoveX = -currentGamepadState.leftStickX
                     val gMoveY = currentGamepadState.leftStickY
@@ -216,14 +219,19 @@ fun MainScreen(
             ) {
                 Text(text = statusText)
 
-                if (gamepadState.isConnected) {
+                if (useGamepad) {
                     Text(
                         text = "🎮 ${gamepadState.deviceName}",
                         modifier = Modifier.padding(top = 4.dp)
                     )
+                } else if (forceTouchControl && gamepadState.isConnected) {
+                    Text(
+                        text = "📱 Control táctil forzado (gamepad ignorado)",
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 } else {
                     Text(
-                        text = "🎮 Mando no detectado - Usando táctil",
+                        text = "📱 Mando no detectado - Usando táctil",
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -348,7 +356,7 @@ fun MainScreen(
 
             // ========== CONTROLES ==========
             // Los controles SIEMPRE están disponibles, conectado o no
-            if (!gamepadState.isConnected) {
+            if (!useGamepad) {
                 // MODO TÁCTIL: Joysticks + Botones de velocidad
                 Column(
                     modifier = Modifier
