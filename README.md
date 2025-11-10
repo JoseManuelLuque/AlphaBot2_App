@@ -11,7 +11,7 @@ Esta es una app Android para el control y manejo del robot AlphaBot2-Pi en mi ca
 ## 📚Índice
 
 1. **Introducción**
-   1. **Contexto personal** (cómo surgió la idea, por qué te interesó el tema).
+   1. Contexto personal (cómo surgió la idea, por qué te interesó el tema).
    2. Motivación del proyecto (problema a resolver o necesidad detectada).
    3. Objetivos del proyecto (qué querías lograr).
    4. Alcance y límites (qué se incluye y qué no)
