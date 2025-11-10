@@ -61,6 +61,7 @@ def kill_existing_servers():
     subprocess.run(["sudo", "pkill", "-f", "joystick_server.py"], stderr=subprocess.DEVNULL)
     subprocess.run(["sudo", "pkill", "-f", "camera_stream.py"], stderr=subprocess.DEVNULL)
     subprocess.run(["sudo", "pkill", "-f", "ultrasonic_sensors.py"], stderr=subprocess.DEVNULL)
+    subprocess.run(["sudo", "pkill", "-f", "line_follow_server.py"], stderr=subprocess.DEVNULL)
 
     # Esperar a que los procesos terminen limpiamente
     time.sleep(1)
@@ -225,6 +226,56 @@ def start_control_server():
     finally:
         print()
 
+def start_line_follow_server():
+    """
+    Inicia el servidor de seguimiento de línea en segundo plano.
+
+    Este servidor maneja el algoritmo PID para seguir líneas negras
+    usando los sensores infrarrojos del robot.
+
+    Returns:
+        bool: True si el servidor se inició correctamente, False si hubo error
+
+    Archivo de log: /tmp/line_follow_server.log
+    """
+    print("=" * 60)
+    print("📏 INICIANDO SERVIDOR DE SEGUIMIENTO DE LÍNEA")
+    print("=" * 60)
+
+    # Obtener ruta absoluta del script de seguimiento de línea
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    line_follow_script = os.path.join(script_dir, "line_follow_server.py")
+
+    print(f"📂 Script: {line_follow_script}")
+    print(f"📝 Log: /tmp/line_follow_server.log")
+
+    try:
+        # Iniciar proceso en segundo plano con sudo (necesario para GPIO)
+        process = subprocess.Popen(
+            ["sudo", "python3", line_follow_script],
+            stdout=open("/tmp/line_follow_server.log", "w"),
+            stderr=subprocess.STDOUT
+        )
+
+        # Esperar un momento para verificar inicio
+        time.sleep(2)
+
+        # Verificar que el proceso sigue corriendo
+        if process.poll() is None:
+            print(f"✅ Servidor de seguimiento iniciado (PID: {process.pid})")
+            print("🌐 Puerto: 5003")
+            return True
+        else:
+            print("❌ El servidor de seguimiento se cerró inesperadamente")
+            print("💡 Ver detalles en: /tmp/line_follow_server.log")
+            return False
+
+    except Exception as e:
+        print(f"❌ Error al iniciar servidor de seguimiento: {e}")
+        return False
+    finally:
+        print()
+
 def get_ip_address():
     """
     Obtiene la dirección IP de la Raspberry Pi en la red local.
@@ -300,10 +351,13 @@ def main():
     # ===== PASO 4: INICIAR SERVIDOR DE CONTROL =====
     control_ok = start_control_server()
 
-    # ===== PASO 5: OBTENER IP DE LA RASPBERRY PI =====
+    # ===== PASO 5: INICIAR SERVIDOR DE SEGUIMIENTO DE LÍNEA =====
+    line_follow_ok = start_line_follow_server()
+
+    # ===== PASO 6: OBTENER IP DE LA RASPBERRY PI =====
     ip_address = get_ip_address()
 
-    # ===== PASO 6: MOSTRAR RESUMEN =====
+    # ===== PASO 7: MOSTRAR RESUMEN =====
     print("=" * 60)
     print(" " * 20 + "RESUMEN DE INICIO")
     print("=" * 60)
@@ -312,6 +366,7 @@ def main():
     print("\n📊 ESTADO DE SERVICIOS:")
     print(f"   Streaming de cámara:  {'✅ ACTIVO' if streaming_ok else '❌ INACTIVO'}")
     print(f"   Servidor de control:  {'✅ ACTIVO' if control_ok else '❌ INACTIVO'}")
+    print(f"   Seguimiento de línea: {'✅ ACTIVO' if line_follow_ok else '❌ INACTIVO'}")
 
     # URLs de acceso
     print("\n🌐 INFORMACIÓN DE CONEXIÓN:")
@@ -326,20 +381,27 @@ def main():
         print(f"      Host: {ip_address}")
         print(f"      Puerto: 5555")
 
+    if line_follow_ok:
+        print(f"\n   📏 Servidor de seguimiento:")
+        print(f"      Host: {ip_address}")
+        print(f"      Puerto: 5003")
+
     # Logs
     print("\n📝 ARCHIVOS DE LOG:")
-    print("   Streaming: /tmp/camera_stream.log")
-    print("   Control:   /tmp/joystick_server.log")
+    print("   Streaming:  /tmp/camera_stream.log")
+    print("   Control:    /tmp/joystick_server.log")
+    print("   Línea:      /tmp/line_follow_server.log")
 
     # Comandos útiles
     print("\n🔧 COMANDOS ÚTILES:")
     print("   Ver log streaming:  tail -f /tmp/camera_stream.log")
     print("   Ver log control:    tail -f /tmp/joystick_server.log")
-    print("   Detener servidores: pkill -f 'joystick_server\\|camera_stream'")
+    print("   Ver log línea:      tail -f /tmp/line_follow_server.log")
+    print("   Detener servidores: pkill -f 'joystick_server\\|camera_stream\\|line_follow_server'")
 
     print("\n" + "=" * 60)
 
-    # ===== PASO 7: VERIFICAR ERRORES CRÍTICOS =====
+    # ===== PASO 8: VERIFICAR ERRORES CRÍTICOS =====
     if not control_ok:
         print("\n❌ ERROR CRÍTICO: El servidor de control no se inició")
         print("💡 El robot no podrá ser controlado")

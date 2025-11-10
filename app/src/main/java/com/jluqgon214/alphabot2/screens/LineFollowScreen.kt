@@ -1,5 +1,6 @@
 package com.jluqgon214.alphabot2.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -12,6 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jluqgon214.alphabot2.network.LineFollowManager
+import com.jluqgon214.alphabot2.network.SSHManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LineFollowScreen(
@@ -20,10 +25,53 @@ fun LineFollowScreen(
     password: String,
     innerPadding: PaddingValues
 ) {
-    var statusText by remember { mutableStateOf("⚠️ Funcionalidad en desarrollo") }
+    var statusText by remember { mutableStateOf("Conectando al servidor...") }
+    var isConnected by remember { mutableStateOf(false) }
     var isFollowing by remember { mutableStateOf(false) }
-    var currentSpeed by remember { mutableStateOf(35f) }
+    var currentSpeed by remember { mutableFloatStateOf(35f) }
     var isCalibrating by remember { mutableStateOf(false) }
+    var isCalibrated by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // Conectar al servidor al iniciar
+    LaunchedEffect(Unit) {
+        // Primero conectar por SSH para verificar que el servidor está iniciado
+        SSHManager.connect(host, user, password) { sshConnected ->
+            if (sshConnected) {
+                statusText = "SSH conectado. Verificando servidor..."
+
+                // Conectar al servidor de seguimiento de línea
+                coroutineScope.launch {
+                    delay(1000) // Dar tiempo al servidor
+
+                    val connected = LineFollowManager.connect(host)
+                    isConnected = connected
+
+                    statusText = if (connected) {
+                        "✅ Conectado - Listo para calibrar"
+                    } else {
+                        "❌ Error: Servidor de seguimiento no disponible"
+                    }
+                }
+            } else {
+                statusText = "❌ Error en la conexión SSH"
+            }
+        }
+    }
+
+    // Limpieza al salir
+    DisposableEffect(Unit) {
+        onDispose {
+            coroutineScope.launch {
+                if (isFollowing) {
+                    LineFollowManager.stop()
+                }
+                LineFollowManager.disconnect()
+                SSHManager.disconnect()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -140,11 +188,16 @@ fun LineFollowScreen(
                         value = currentSpeed,
                         onValueChange = { newSpeed ->
                             currentSpeed = newSpeed
-                            // TODO: Enviar velocidad al servidor
+                        },
+                        onValueChangeFinished = {
+                            // Enviar velocidad al servidor cuando se suelta el slider
+                            coroutineScope.launch {
+                                LineFollowManager.setSpeed(currentSpeed.toInt())
+                            }
                         },
                         valueRange = 10f..100f,
                         steps = 17, // Pasos de 5 en 5
-                        enabled = false, // Deshabilitado hasta implementar funcionalidad
+                        enabled = isConnected && !isFollowing, // Deshabilitado mientras sigue la línea
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -167,12 +220,22 @@ fun LineFollowScreen(
                     // Botón INICIAR
                     Button(
                         onClick = {
-                            // TODO: Implementar inicio de seguimiento
-                            isFollowing = true
-                            statusText = "🟢 Siguiendo línea... (simulado)"
+                            coroutineScope.launch {
+                                statusText = "🚀 Iniciando seguimiento..."
+                                val result = LineFollowManager.start()
+
+                                result.onSuccess { message ->
+                                    isFollowing = true
+                                    statusText = "🟢 Siguiendo línea..."
+                                    Log.d("LineFollow", "Iniciado: $message")
+                                }.onFailure { error ->
+                                    statusText = "❌ Error: ${error.message}"
+                                    Log.e("LineFollow", "Error iniciando: ${error.message}")
+                                }
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = false, // Deshabilitado hasta implementar funcionalidad
+                        enabled = isConnected && isCalibrated && !isFollowing,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
@@ -185,12 +248,22 @@ fun LineFollowScreen(
                     // Botón PARAR
                     Button(
                         onClick = {
-                            // TODO: Implementar detención de seguimiento
-                            isFollowing = false
-                            statusText = "⏹️ Detenido"
+                            coroutineScope.launch {
+                                statusText = "⏹️ Deteniendo..."
+                                val result = LineFollowManager.stop()
+
+                                result.onSuccess { message ->
+                                    isFollowing = false
+                                    statusText = "⏸️ Detenido"
+                                    Log.d("LineFollow", "Detenido: $message")
+                                }.onFailure { error ->
+                                    statusText = "❌ Error: ${error.message}"
+                                    Log.e("LineFollow", "Error deteniendo: ${error.message}")
+                                }
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = false, // Deshabilitado hasta implementar funcionalidad
+                        enabled = isConnected && isFollowing,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         )
@@ -204,19 +277,33 @@ fun LineFollowScreen(
                 // Botón CALIBRAR (abajo, ancho completo)
                 Button(
                     onClick = {
-                        // TODO: Implementar calibración
-                        isCalibrating = true
-                        statusText = "🔧 Calibrando sensores... (simulado)"
+                        coroutineScope.launch {
+                            isCalibrating = true
+                            statusText = "🔧 Calibrando sensores... El robot se moverá automáticamente"
+
+                            val result = LineFollowManager.calibrate()
+
+                            result.onSuccess { message ->
+                                isCalibrating = false
+                                isCalibrated = true
+                                statusText = "✅ Calibración completada - Listo para iniciar"
+                                Log.d("LineFollow", "Calibrado: $message")
+                            }.onFailure { error ->
+                                isCalibrating = false
+                                statusText = "❌ Error en calibración: ${error.message}"
+                                Log.e("LineFollow", "Error calibrando: ${error.message}")
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = false, // Deshabilitado hasta implementar funcionalidad
+                    enabled = isConnected && !isFollowing && !isCalibrating,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary
                     )
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isCalibrating) "CALIBRANDO..." else "CALIBRAR SENSORES")
+                    Text(if (isCalibrating) "CALIBRANDO..." else if (isCalibrated) "RECALIBRAR SENSORES" else "CALIBRAR SENSORES")
                 }
             }
         }
