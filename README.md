@@ -55,6 +55,7 @@ Esta es una app Android para el control y manejo del robot AlphaBot2-Pi en mi ca
       3. Código
       4. Librerías
       5. Dificultades
-7. Pruebas y validación
-8. Conclusiones
+7. Pruebas y validación&#x20;
+8. Conclusión&#x20;
+9. Anexos
 
