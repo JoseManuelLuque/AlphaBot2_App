@@ -6,9 +6,9 @@ icon: robot
 
 Esta es una app Android para el control y manejo del robot AlphaBot2-Pi en mi caso equipado con una Raspberry Pi Zero 2.0
 
+***
 
-
-## Índice
+## 📚Índice
 
 1. **Introducción**
    1. **Contexto personal** (cómo surgió la idea, por qué te interesó el tema).
