@@ -1,3 +1,3 @@
 # Table of contents
 
-* [Page](README.md)
+* [APP AlphaBot2](README.md)
