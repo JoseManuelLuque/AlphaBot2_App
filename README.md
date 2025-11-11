@@ -23,13 +23,13 @@ Esta es una app Android para el control y manejo del robot AlphaBot2-Pi en mi ca
    1. Descripción funcional: qué hace el sistema, para quién y cómo se usa.
    2. Uso previsto (ej. hogar, hobby, educación, demostración).
    3. Requisitos iniciales:
-      1. Requisitos funcionales (lo que **hace**).
+      1. Requisitos funcionales (lo que hace).
       2. Requisitos no funcionales (rendimiento, seguridad, usabilidad).
 4. **Arquitectura del sistema**
-   1. **Diagrama general del sistema** (App Android + API + Base de datos + Robot si corresponde).
+   1. Diagrama general del sistema (App Android + API + Base de datos + Robot si corresponde).
    2. Tecnologías utilizadas:
       1. Lenguaje (Kotlin, Python, etc.).
-      2. Frameworks (Jetpack Compose, Spring Boot, etc.).
+      2. Frameworks (Jetpack Compose, Firebase, etc.).
       3. Hardware (Raspberry Pi, AlphaBot2).
    3. Justificación de por qué elegiste esas tecnologías.
 5.  Diseño de la Aplicación
