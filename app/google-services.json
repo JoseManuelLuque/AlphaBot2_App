@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "354975164930",
+    "project_id": "app-aplhabot-2",
+    "storage_bucket": "app-aplhabot-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354975164930:android:658bf5bc52e598d350151b",
+        "android_client_info": {
+          "package_name": "com.jluqgon214.alphabot2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCApmcHh28kJbjCg1asM-8LgUeaOd-nKig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

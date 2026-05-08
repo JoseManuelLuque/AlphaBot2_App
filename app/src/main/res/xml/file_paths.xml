@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+        Rutas expuestas por el FileProvider.
+        Aquí permitimos compartir archivos temporales que guardamos en cacheDir.
+        UCrop escribe el resultado del recorte en un .jpg dentro de cache y luego
+        lo subimos a Firebase Storage.
+    -->
+    <cache-path name="cache" path="." />
+</paths>
+

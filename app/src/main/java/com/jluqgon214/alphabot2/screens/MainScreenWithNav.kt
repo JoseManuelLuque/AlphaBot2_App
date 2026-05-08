@@ -2,16 +2,26 @@ package com.jluqgon214.alphabot2.screens
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
 import com.jluqgon214.alphabot2.navigation.BottomNavScreen
 import com.jluqgon214.alphabot2.navigation.BottomNavigationBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreenWithNav(
     host: String,
@@ -19,11 +29,26 @@ fun MainScreenWithNav(
     password: String,
     innerPadding: PaddingValues,
     gamepadManager: GamepadManager,
-    forceTouchControl: Boolean
+    forceTouchControl: Boolean,
+    onMenuClick: () -> Unit
 ) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val currentScreen = BottomNavScreen.getAllScreens().find { it.route == currentRoute }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(currentScreen?.title ?: "AlphaBot2") },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menú")
+                    }
+                }
+            )
+        },
         bottomBar = {
             BottomNavigationBar(navController = navController)
         }
@@ -73,7 +98,11 @@ fun MainScreenWithNav(
                     innerPadding = innerPadding
                 )
             }
+
+            // Pantalla de Perfil
+            composable(BottomNavScreen.Profile.route) {
+                ProfileScreen()
+            }
         }
     }
 }
-

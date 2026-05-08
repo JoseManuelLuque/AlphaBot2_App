@@ -7,35 +7,63 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
+import com.jluqgon214.alphabot2.navigation.DrawerContent
 import com.jluqgon214.alphabot2.navigation.NavGraph
+import com.jluqgon214.alphabot2.navigation.Screen
 import com.jluqgon214.alphabot2.ui.theme.AlphaBot2Theme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     // Gestor de gamepad compartido
     val gamepadManager = GamepadManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
-        val host = "10.42.0.101"
-        val user = "pi"
-        val password = "raspberry"
-
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             AlphaBot2Theme {
                 val navController = rememberNavController()
+                val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                val scope = rememberCoroutineScope()
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    NavGraph(
-                        navController = navController,
-                        innerPadding = innerPadding,
-                        gamepadManager = gamepadManager
-                    )
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    drawerContent = {
+                        DrawerContent(navController = navController, onLogout = {
+                            scope.launch {
+                                drawerState.close()
+                            }
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Config.route) { inclusive = true }
+                            }
+                        },
+                            onDestinationClicked = {
+                                scope.launch {
+                                    drawerState.close()
+                                }
+                            })
+                    }
+                ) {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        NavGraph(
+                            navController = navController,
+                            innerPadding = innerPadding,
+                            gamepadManager = gamepadManager,
+                            onMenuClick = {
+                                scope.launch {
+                                    drawerState.open()
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }

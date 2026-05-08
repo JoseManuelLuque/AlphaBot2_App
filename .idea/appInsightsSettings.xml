@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.jluqgon214.alphabot2" />
+                  <option name="mobileSdkAppId" value="1:354975164930:android:658bf5bc52e598d350151b" />
+                  <option name="projectId" value="app-aplhabot-2" />
+                  <option name="projectNumber" value="354975164930" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

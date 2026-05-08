@@ -5,7 +5,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
+    object Login : Screen("login")
+    object Register : Screen("register")
     object Config : Screen("config")
+    object Profile : Screen("profile")
+    object Posts : Screen("posts")
     object Main : Screen("main/{host}/{user}/{password}/{forceTouchControl}") {
         fun createRoute(host: String, user: String, password: String, forceTouchControl: Boolean): String {
             return "main/$host/$user/$password/$forceTouchControl"
@@ -43,8 +47,13 @@ sealed class BottomNavScreen(
         icon = Icons.Default.ShowChart
     )
 
+    object Profile : BottomNavScreen(
+        route = "profile",
+        title = "Perfil",
+        icon = Icons.Default.Person
+    )
+
     companion object {
-        fun getAllScreens() = listOf(Control, Buzzer, Leds, LineFollow)
+        fun getAllScreens() = listOf(Control, Buzzer, Leds, LineFollow, Profile)
     }
 }
-

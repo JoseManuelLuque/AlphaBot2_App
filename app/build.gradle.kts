@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -75,11 +77,20 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Dependencias de Firebase
+    implementation("com.google.firebase:firebase-auth") // Para Firebase Authentication
+    implementation("com.google.firebase:firebase-firestore") // Para Cloud Firestore
+    implementation("com.google.firebase:firebase-storage") // Para Cloud Storage para Firebase
+
     // JSch library for SSH connections
     implementation("com.jcraft:jsch:0.1.55")
 
     // Kotlin Coroutines for asynchronous programming
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Joystick library
     implementation("com.github.manalkaff:JetStick:1.2")
@@ -87,6 +98,24 @@ dependencies {
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // ViewModel Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
     // Canopas Animated Bottom Navigation Bar
     implementation("com.canopas.compose-animated-navigationbar:bottombar:1.0.1")
+
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+     // UCrop for interactive image cropping
+     // UCrop:
+     // - Librería para recorte interactivo de imágenes.
+     // - La usamos para que el usuario elija el recorte de su foto de perfil.
+     implementation("com.github.yalantis:ucrop:2.2.8")
+
+     // AppCompat (required by UCropActivity)
+     // AppCompat:
+     // - UCropActivity está basada en AppCompatActivity y necesita appcompat.
+     // - También usamos un tema AppCompat en el AndroidManifest para la pantalla de UCrop.
+     implementation("androidx.appcompat:appcompat:1.7.0")
 }

@@ -10,17 +10,30 @@ import androidx.navigation.navArgument
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
 import com.jluqgon214.alphabot2.screens.ConfigScreen
 import com.jluqgon214.alphabot2.screens.MainScreenWithNav
+import com.jluqgon214.alphabot2.screens.PostsScreen
+import com.jluqgon214.alphabot2.screens.ProfileScreen
+import com.jluqgon214.alphabot2.screens.auth.LoginScreen
+import com.jluqgon214.alphabot2.screens.auth.RegisterScreen
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     innerPadding: PaddingValues,
-    gamepadManager: GamepadManager
+    gamepadManager: GamepadManager,
+    onMenuClick: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Config.route
+        startDestination = Screen.Login.route
     ) {
+        composable(Screen.Login.route) {
+            // Las pantallas de autenticación están en el paquete `screens.auth` y
+            // reciben el NavController directamente.
+            LoginScreen(navController = navController)
+        }
+        composable(Screen.Register.route) {
+            RegisterScreen(navController = navController)
+        }
         // Pantalla de configuración (inicial)
         composable(route = Screen.Config.route) {
             ConfigScreen(
@@ -51,8 +64,15 @@ fun NavGraph(
                 password = password,
                 innerPadding = innerPadding,
                 gamepadManager = gamepadManager,
-                forceTouchControl = forceTouchControl
+                forceTouchControl = forceTouchControl,
+                onMenuClick = onMenuClick
             )
+        }
+        composable(Screen.Profile.route) {
+            ProfileScreen(navController = navController)
+        }
+        composable(Screen.Posts.route) {
+            PostsScreen()
         }
     }
 }
