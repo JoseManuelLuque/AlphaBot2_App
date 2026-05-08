@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -47,6 +48,16 @@ fun DrawerContent(
             selected = false,
             onClick = {
                 navController.navigate(Screen.Posts.route)
+                onDestinationClicked()
+            }
+        )
+
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+            label = { Text("Configuración") },
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.Settings.route)
                 onDestinationClicked()
             }
         )

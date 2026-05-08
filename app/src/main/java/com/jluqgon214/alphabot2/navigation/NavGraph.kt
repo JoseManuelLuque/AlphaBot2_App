@@ -12,6 +12,7 @@ import com.jluqgon214.alphabot2.screens.ConfigScreen
 import com.jluqgon214.alphabot2.screens.MainScreenWithNav
 import com.jluqgon214.alphabot2.screens.PostsScreen
 import com.jluqgon214.alphabot2.screens.ProfileScreen
+import com.jluqgon214.alphabot2.screens.SettingsScreen
 import com.jluqgon214.alphabot2.screens.auth.LoginScreen
 import com.jluqgon214.alphabot2.screens.auth.RegisterScreen
 
@@ -73,6 +74,9 @@ fun NavGraph(
         }
         composable(Screen.Posts.route) {
             PostsScreen()
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen()
         }
     }
 }
