@@ -8,7 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
-import com.jluqgon214.alphabot2.screens.ConfigScreen
+import com.jluqgon214.alphabot2.screens.controls.ConfigScreen
 import com.jluqgon214.alphabot2.screens.MainScreenWithNav
 import com.jluqgon214.alphabot2.screens.PostsScreen
 import com.jluqgon214.alphabot2.screens.ProfileScreen

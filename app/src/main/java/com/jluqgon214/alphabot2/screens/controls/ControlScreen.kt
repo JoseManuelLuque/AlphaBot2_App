@@ -1,6 +1,8 @@
-package com.jluqgon214.alphabot2.screens
+package com.jluqgon214.alphabot2.screens.controls
 
 import android.util.Log
+import android.view.View
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.*
@@ -258,7 +260,7 @@ fun MainScreen(
                                     useWideViewPort = true
                                     builtInZoomControls = false
                                     displayZoomControls = false
-                                    cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+                                    cacheMode = WebSettings.LOAD_NO_CACHE
                                     mediaPlaybackRequiresUserGesture = false
 
                                     // Configuraciones adicionales para streaming
@@ -272,11 +274,11 @@ fun MainScreen(
                                     loadsImagesAutomatically = true
                                     blockNetworkImage = false
                                     blockNetworkLoads = false
-                                    mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 }
 
                                 setBackgroundColor(0xFF1E1E1E.toInt())
-                                setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                                setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                                 webViewClient = object : WebViewClient() {
                                     override fun onReceivedError(

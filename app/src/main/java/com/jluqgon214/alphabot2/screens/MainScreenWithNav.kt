@@ -20,6 +20,10 @@ import androidx.navigation.compose.rememberNavController
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
 import com.jluqgon214.alphabot2.navigation.BottomNavScreen
 import com.jluqgon214.alphabot2.navigation.BottomNavigationBar
+import com.jluqgon214.alphabot2.screens.controls.BuzzerScreen
+import com.jluqgon214.alphabot2.screens.controls.LedsScreen
+import com.jluqgon214.alphabot2.screens.controls.LineFollowScreen
+import com.jluqgon214.alphabot2.screens.controls.MainScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -9,6 +9,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
+import com.jluqgon214.alphabot2.models.CommentModel
+import com.jluqgon214.alphabot2.models.PostModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -19,30 +21,6 @@ import java.net.URLDecoder
 import java.util.UUID
 import kotlin.math.max
 
-data class PostUiModel(
-    val id: String,
-    val userId: String,
-    val username: String,
-    val userAvatarUrl: String,
-    val title: String,
-    val text: String,
-    val imageUrl: String,
-    val createdAt: Long,
-    val likesCount: Int,
-    val likedBy: List<String>
-)
-
-data class CommentUiModel(
-    val id: String,
-    val postId: String,
-    val userId: String,
-    val username: String,
-    val userAvatarUrl: String,
-    val text: String,
-    val createdAt: Long,
-    val likesCount: Int,
-    val likedBy: List<String>
-)
 
 class PostsViewModel : ViewModel() {
 
@@ -50,11 +28,11 @@ class PostsViewModel : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-    private val _posts = MutableStateFlow<List<PostUiModel>>(emptyList())
-    val posts: StateFlow<List<PostUiModel>> = _posts
+    private val _posts = MutableStateFlow<List<PostModel>>(emptyList())
+    val posts: StateFlow<List<PostModel>> = _posts
 
-    private val _commentsByPost = MutableStateFlow<Map<String, List<CommentUiModel>>>(emptyMap())
-    val commentsByPost: StateFlow<Map<String, List<CommentUiModel>>> = _commentsByPost
+    private val _commentsByPost = MutableStateFlow<Map<String, List<CommentModel>>>(emptyMap())
+    val commentsByPost: StateFlow<Map<String, List<CommentModel>>> = _commentsByPost
 
     private val _creatingPost = MutableStateFlow(false)
     val creatingPost: StateFlow<Boolean> = _creatingPost
@@ -96,7 +74,7 @@ class PostsViewModel : ViewModel() {
                     return@addSnapshotListener
                 }
 
-                val loadedPosts = snapshot?.documents?.map { it.toPostUiModel() }.orEmpty()
+                val loadedPosts = snapshot?.documents?.map { it.toPostModel() }.orEmpty()
                 _posts.value = loadedPosts
                 syncCommentListeners(loadedPosts.map { it.id }.toSet())
                 _loadingPosts.value = false
@@ -123,8 +101,8 @@ class PostsViewModel : ViewModel() {
                     }
 
                     val comments = snapshot?.documents
-                        ?.map { it.toCommentUiModel(postId) }
-                        ?.sortedWith(compareByDescending<CommentUiModel> { it.likesCount }.thenByDescending { it.createdAt })
+                        ?.map { it.toCommentModel(postId) }
+                        ?.sortedWith(compareByDescending<CommentModel> { it.likesCount }.thenByDescending { it.createdAt })
                         .orEmpty()
                     _commentsByPost.value = _commentsByPost.value.toMutableMap().apply {
                         this[postId] = comments
@@ -314,7 +292,7 @@ class PostsViewModel : ViewModel() {
         }
     }
 
-    fun deletePost(post: PostUiModel) {
+    fun deletePost(post: PostModel) {
         val uid = auth.currentUser?.uid ?: return
         if (post.userId != uid) {
             _error.value = "Solo puedes borrar tus propios posts"
@@ -377,8 +355,8 @@ class PostsViewModel : ViewModel() {
     }
 }
 
-private fun DocumentSnapshot.toPostUiModel(): PostUiModel {
-    return PostUiModel(
+private fun DocumentSnapshot.toPostModel(): PostModel {
+    return PostModel(
         id = getString("id") ?: id,
         userId = getString("userId") ?: "",
         username = getString("username") ?: "Usuario",
@@ -392,8 +370,8 @@ private fun DocumentSnapshot.toPostUiModel(): PostUiModel {
     )
 }
 
-private fun DocumentSnapshot.toCommentUiModel(postId: String): CommentUiModel {
-    return CommentUiModel(
+private fun DocumentSnapshot.toCommentModel(postId: String): CommentModel {
+    return CommentModel(
         id = getString("id") ?: id,
         postId = postId,
         userId = getString("userId") ?: "",
@@ -405,4 +383,5 @@ private fun DocumentSnapshot.toCommentUiModel(postId: String): CommentUiModel {
         likedBy = (get("likedBy") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
     )
 }
+
 

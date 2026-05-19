@@ -65,8 +65,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.jluqgon214.alphabot2.viewmodels.CommentUiModel
-import com.jluqgon214.alphabot2.viewmodels.PostUiModel
+import com.jluqgon214.alphabot2.models.CommentModel
+import com.jluqgon214.alphabot2.models.PostModel
 import com.jluqgon214.alphabot2.viewmodels.PostsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -326,8 +326,8 @@ private fun CreatePostDialog(
 
 @Composable
 private fun PostCard(
-    post: PostUiModel,
-    comments: List<CommentUiModel>,
+    post: PostModel,
+    comments: List<CommentModel>,
     currentUserId: String,
     sendingComment: Boolean,
     deletingPost: Boolean,
@@ -531,7 +531,7 @@ private fun PostCard(
 
 @Composable
 private fun CommentItem(
-    comment: CommentUiModel,
+    comment: CommentModel,
     currentUserId: String,
     onToggleLike: () -> Unit
 ) {
@@ -624,3 +624,4 @@ private fun deleteIfTempFile(uri: Uri?) {
         if (file.exists()) file.delete()
     }
 }
+

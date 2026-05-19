@@ -1,4 +1,4 @@
-package com.jluqgon214.alphabot2.screens
+package com.jluqgon214.alphabot2.screens.controls
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
