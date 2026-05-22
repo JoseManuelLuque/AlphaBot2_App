@@ -41,6 +41,15 @@ import com.example.bottombar.AnimatedBottomBar
 import com.example.bottombar.model.IndicatorDirection
 import com.example.bottombar.model.IndicatorStyle
 
+/**
+ * Barra de navegación inferior animada para los módulos de control del robot.
+ *
+ * Se muestra dentro de `MainScreenWithNav` y permite alternar entre control,
+ * buzzer, LEDs y seguimiento de línea.
+ *
+ * @param navController Controlador de navegación interno de la zona de control.
+ * @param visible Indica si la barra debe mostrarse u ocultarse con animación.
+ */
 @Composable
 fun BottomNavigationBar(
     navController: NavController,
@@ -112,6 +121,14 @@ fun BottomNavigationBar(
     }
 }
 
+/**
+ * Elemento visual de la barra inferior con animaciones de estado seleccionado.
+ *
+ * @param selected Indica si la pestaña actual está activa.
+ * @param onClick Acción de navegación al pulsar.
+ * @param icon Icono de la pestaña.
+ * @param label Texto de la pestaña.
+ */
 @Composable
 private fun CustomBottomBarItem(
     selected: Boolean,

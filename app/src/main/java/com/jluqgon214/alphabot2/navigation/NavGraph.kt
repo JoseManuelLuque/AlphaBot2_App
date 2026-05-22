@@ -20,34 +20,52 @@ import com.jluqgon214.alphabot2.screens.UserProfileScreen
 import com.jluqgon214.alphabot2.screens.auth.LoginScreen
 import com.jluqgon214.alphabot2.screens.auth.RegisterScreen
 
+/**
+ * NavGraph: Define todas las rutas de navegación de la app.
+ *
+ * Estructura de navegación:
+ * 1. Autenticación (Login/Register)
+ * 2. Configuración (IP del robot)
+ * 3. Control (Joysticks, LEDs, etc.)
+ * 4. Social (Posts, Perfiles, Ajustes)
+ *
+ * @param navController Controlador que gestiona la navegación
+ * @param innerPadding Espacios para barras del sistema
+ * @param gamepadManager Gestor de mando Bluetooth
+ */
 @Composable
 fun NavGraph(
     navController: NavHostController,
     innerPadding: PaddingValues,
     gamepadManager: GamepadManager,
 ) {
+    // NavHost define el contenedor de navegación y la ruta inicial
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = Screen.Login.route // La app comienza en login
     ) {
+        // ========== PANTALLAS DE AUTENTICACIÓN ==========
+        // Usuario no registrado: login o signup
         composable(Screen.Login.route) {
-            // Las pantallas de autenticación están en el paquete `screens.auth` y
-            // reciben el NavController directamente.
             LoginScreen(navController = navController)
         }
         composable(Screen.Register.route) {
             RegisterScreen(navController = navController)
         }
-        // Pantalla de configuración (inicial)
+
+        // ========== PANTALLAS DE CONFIGURACIÓN ==========
+        // Introducir usuario/contraseña SSH del robot para conectar
         composable(route = Screen.Config.route) {
             ConfigScreen(
                 onConnect = { host, user, password, forceTouchControl ->
+                    // Al conectar, ir a la pantalla principal con los datos
                     navController.navigate(Screen.Main.createRoute(host, user, password, forceTouchControl))
                 }
             )
         }
 
-        // Pantalla principal de control con Bottom Navigation
+        // ========== PANTALLA PRINCIPAL DE CONTROL ==========
+        // Pantalla de control con joysticks y módulos (LEDs, Buzzer, etc.)
         composable(
             route = Screen.Main.route,
             arguments = listOf(
@@ -57,6 +75,7 @@ fun NavGraph(
                 navArgument("forceTouchControl") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
+            // Extraer parámetros de la ruta
             val host = backStackEntry.arguments?.getString("host") ?: ""
             val user = backStackEntry.arguments?.getString("user") ?: ""
             val password = backStackEntry.arguments?.getString("password") ?: ""
@@ -71,12 +90,17 @@ fun NavGraph(
                 forceTouchControl = forceTouchControl
             )
         }
+
+        // ========== PANTALLAS SOCIALES ==========
+        // Perfil del usuario actual
         composable(Screen.Profile.route) {
             ProfileScreen(navController = navController)
         }
+        // Feed de posts públicos
         composable(Screen.Posts.route) {
             PostsScreen(navController = navController)
         }
+        // Ajustes (idioma, admin panel, etc.)
         composable(Screen.Settings.route) {
             SettingsScreen()
         }

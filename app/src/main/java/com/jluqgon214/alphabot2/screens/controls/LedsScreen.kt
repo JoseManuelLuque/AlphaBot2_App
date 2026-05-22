@@ -20,6 +20,22 @@ import com.jluqgon214.alphabot2.network.SSHManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Pantalla de control de LEDs del robot.
+ *
+ * Permite:
+ * - Encender/apagar LEDs
+ * - Seleccionar colores predefinidos
+ * - Ajustar brillo (0-100%)
+ * - Aplicar efectos: Estático, Arcoíris, Parpadeo, Respiración
+ *
+ * Se conecta vía SSH al robot y lanza el servidor de LEDs en puerto 5556.
+ *
+ * @param host IP del robot
+ * @param user Usuario SSH del robot
+ * @param password Contraseña SSH del robot
+ * @param innerPadding PaddingValues para respetar barras del sistema
+ */
 @Composable
 fun LedsScreen(
     host: String,

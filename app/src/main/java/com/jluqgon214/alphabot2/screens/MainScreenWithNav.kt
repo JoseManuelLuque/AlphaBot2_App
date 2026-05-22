@@ -5,11 +5,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
 import com.jluqgon214.alphabot2.navigation.BottomNavScreen
@@ -19,6 +17,19 @@ import com.jluqgon214.alphabot2.screens.controls.LedsScreen
 import com.jluqgon214.alphabot2.screens.controls.LineFollowScreen
 import com.jluqgon214.alphabot2.screens.controls.MainScreen
 
+/**
+ * Contenedor principal del módulo de control con navegación inferior.
+ *
+ * Mantiene un `NavHost` interno para cambiar entre pantallas de control sin
+ * perder el contexto de conexión al robot.
+ *
+ * @param host IP/host del robot.
+ * @param user Usuario SSH.
+ * @param password Contraseña SSH.
+ * @param innerPadding Padding de sistema heredado del `Scaffold` superior.
+ * @param gamepadManager Gestor del mando Bluetooth.
+ * @param forceTouchControl Fuerza control táctil aunque haya mando conectado.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreenWithNav(
@@ -30,8 +41,6 @@ fun MainScreenWithNav(
     forceTouchControl: Boolean
 ) {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
         bottomBar = {

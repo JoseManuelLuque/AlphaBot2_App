@@ -11,6 +11,14 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.Socket
 
+/**
+ * Gestor de socket TCP para control de movimiento y cámara del robot.
+ *
+ * Protocolo de comandos usado:
+ * - `MOVE x y`
+ * - `CAMERA x y`
+ * - `quit`
+ */
 object SocketManager {
     private var socket: Socket? = null
     private var writer: PrintWriter? = null
@@ -19,6 +27,12 @@ object SocketManager {
     private const val TAG = "SocketManager"
     private const val PORT = 5555
 
+    /**
+     * Intenta conectar con el servidor de control del robot (puerto 5555).
+     *
+     * @param host IP/host del robot.
+     * @param onResult Callback con resultado de conexión.
+     */
     fun connect(host: String, onResult: (Boolean) -> Unit) {
         connectionJob?.cancel()
         connectionJob = CoroutineScope(Dispatchers.IO).launch {
@@ -48,6 +62,7 @@ object SocketManager {
         }
     }
 
+    /** Envía datos normalizados del joystick de movimiento. */
     fun sendJoystickData(x: Float, y: Float) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -62,6 +77,7 @@ object SocketManager {
         }
     }
 
+    /** Envía datos normalizados del joystick de cámara. */
     fun sendCameraData(x: Float, y: Float) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -76,10 +92,12 @@ object SocketManager {
         }
     }
 
+    /** Envía parada lógica de movimiento (0,0). */
     fun stop() {
         sendJoystickData(0f, 0f)
     }
 
+    /** Cierra la conexión con el servidor de control y limpia recursos locales. */
     fun disconnect() {
         try {
             writer?.println("quit")
@@ -95,6 +113,7 @@ object SocketManager {
         }
     }
 
+    /** Indica si el socket permanece conectado y abierto. */
     fun isConnected(): Boolean {
         return socket?.isConnected == true && !socket!!.isClosed
     }

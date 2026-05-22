@@ -11,6 +11,11 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.Socket
 
+/**
+ * Gestor de comunicación TCP con el servidor de LEDs del robot (puerto 5556).
+ *
+ * Comandos soportados: `ON`, `OFF`, `COLOR`, `BRIGHTNESS`, `EFFECT`, `QUIT`.
+ */
 object LedManager {
     private var socket: Socket? = null
     private var writer: PrintWriter? = null
@@ -19,6 +24,7 @@ object LedManager {
     private const val TAG = "LedManager"
     private const val PORT = 5556 // Puerto del servidor de LEDs
 
+    /** Conecta con el servidor remoto de LEDs. */
     fun connect(host: String, onResult: (Boolean) -> Unit) {
         connectionJob?.cancel()
         connectionJob = CoroutineScope(Dispatchers.IO).launch {
@@ -48,6 +54,7 @@ object LedManager {
         }
     }
 
+    /** Enciende los LEDs remotos. */
     fun turnOn(onResult: ((Boolean) -> Unit)? = null) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -75,6 +82,7 @@ object LedManager {
         }
     }
 
+    /** Apaga los LEDs remotos. */
     fun turnOff(onResult: ((Boolean) -> Unit)? = null) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -102,6 +110,7 @@ object LedManager {
         }
     }
 
+    /** Establece color RGB en rango 0..255 por canal. */
     fun setColor(red: Int, green: Int, blue: Int, onResult: ((Boolean) -> Unit)? = null) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -129,6 +138,7 @@ object LedManager {
         }
     }
 
+    /** Ajusta brillo global en porcentaje 0..100. */
     fun setBrightness(brightness: Int, onResult: ((Boolean) -> Unit)? = null) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -156,6 +166,7 @@ object LedManager {
         }
     }
 
+    /** Cambia el efecto/animación activa del servidor LED. */
     fun setEffect(effect: String, onResult: ((Boolean) -> Unit)? = null) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -183,6 +194,7 @@ object LedManager {
         }
     }
 
+    /** Cierra conexión con el servidor de LEDs y limpia recursos. */
     fun disconnect() {
         try {
             writer?.println("QUIT")
@@ -198,6 +210,7 @@ object LedManager {
         }
     }
 
+    /** Indica si la conexión TCP está activa. */
     fun isConnected(): Boolean {
         return socket?.isConnected == true && !socket!!.isClosed
     }

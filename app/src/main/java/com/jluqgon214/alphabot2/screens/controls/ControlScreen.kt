@@ -23,6 +23,25 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 
+/**
+ * Pantalla principal de control del robot AlphaBot2.
+ *
+ * Funcionalidades:
+ * - Joysticks táctiles (o mando Bluetooth) para movimiento
+ * - Stream de video en tiempo real desde la cámara del robot
+ * - Control de velocidad (lento, normal, rápido)
+ * - Captura de fotos
+ * - Grabar video
+ *
+ * El control puede ser por joysticks táctiles o por mando Bluetooth configurado.
+ *
+ * @param host IP del robot
+ * @param user Usuario SSH del robot
+ * @param password Contraseña SSH del robot
+ * @param innerPadding PaddingValues para respeto de barras del sistema
+ * @param gamepadManager Gestor de conexión a mando Bluetooth
+ * @param forceTouchControl Fuerza el uso de joysticks táctiles incluso si hay mando
+ */
 @Composable
 fun MainScreen(
     host: String,

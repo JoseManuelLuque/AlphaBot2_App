@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * ViewModel para gestionar la selección de idioma.
- * Por ahora es moneta (solo UI), se implementará el guardado en preferencias después.
+ * Por ahora es monolengua en estado local (solo UI);
+ * más adelante se persistirá en DataStore.
  */
 class LanguageViewModel : ViewModel() {
 
@@ -14,6 +15,11 @@ class LanguageViewModel : ViewModel() {
     private val _selectedLanguage = MutableStateFlow("es")
     val selectedLanguage: StateFlow<String> = _selectedLanguage
 
+    /**
+     * Actualiza el idioma seleccionado en memoria.
+     *
+     * @param language Código de idioma (`es` o `en`).
+     */
     fun setLanguage(language: String) {
         _selectedLanguage.value = language
         // TODO: Guardar en SharedPreferences o DataStore

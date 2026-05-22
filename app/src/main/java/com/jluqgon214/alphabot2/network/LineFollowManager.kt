@@ -8,8 +8,6 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.Socket
 
-// TODO Mo he comseguido hacer que funcione, consigo que el servidor se conecte y reciba el comando,
-//  me lo devuelve, pero el robot se vuelve loco y no es capaz de seguir la linea como deberia
 
 /**
  * Gestor de comunicación con el servidor de seguimiento de línea.

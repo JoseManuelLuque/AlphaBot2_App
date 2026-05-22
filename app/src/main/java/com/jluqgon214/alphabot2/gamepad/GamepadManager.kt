@@ -9,7 +9,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /**
- * Gestor de mandos para AlphaBot2
+ * Gestor de entrada de mandos Bluetooth/USB para AlphaBot2.
+ *
+ * Detecta conexión de gamepad, aplica zona muerta a sticks y expone un estado
+ * reactivo consumido por la UI de control.
  */
 class GamepadManager {
     var state by mutableStateOf(GamepadState())
@@ -17,6 +20,7 @@ class GamepadManager {
 
     private val deadzone = 0.15f
 
+    /** Busca dispositivos con fuente `GAMEPAD` o `JOYSTICK`. */
     fun detectGamepads(): List<InputDevice> {
         val gameControllerDeviceIds = mutableListOf<Int>()
         val deviceIds = InputDevice.getDeviceIds()
@@ -36,6 +40,7 @@ class GamepadManager {
         return gameControllerDeviceIds.mapNotNull { InputDevice.getDevice(it) }
     }
 
+    /** Refresca el estado de conexión y nombre del dispositivo activo. */
     fun updateConnectionState() {
         val gamepads = detectGamepads()
         val wasConnected = state.isConnected
@@ -57,6 +62,7 @@ class GamepadManager {
         return if (kotlin.math.abs(value) < deadzone) 0f else value
     }
 
+    /** Procesa eventos analógicos de sticks/triggers y actualiza estado interno. */
     fun onMotionEvent(event: MotionEvent): Boolean {
         if (event.source and InputDevice.SOURCE_JOYSTICK != InputDevice.SOURCE_JOYSTICK &&
             event.source and InputDevice.SOURCE_GAMEPAD != InputDevice.SOURCE_GAMEPAD) {
@@ -87,6 +93,7 @@ class GamepadManager {
         return true
     }
 
+    /** Procesa eventos digitales de botones del mando. */
     fun onKeyEvent(event: KeyEvent): Boolean {
         if (!state.isConnected) {
             updateConnectionState()

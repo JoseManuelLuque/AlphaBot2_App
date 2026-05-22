@@ -4,6 +4,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
+/**
+ * Rutas de navegación de la app principal.
+ *
+ * Cada objeto representa una pantalla registrada en el `NavGraph`.
+ * @param route Patrón de ruta que usa Navigation Compose.
+ */
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
@@ -14,19 +20,31 @@ sealed class Screen(val route: String) {
     object About : Screen("about")
     object Terms : Screen("terms")
     object Privacy : Screen("privacy")
+
+    /** Ruta del perfil público de un usuario concreto. */
     object UserProfile : Screen("user_profile/{userId}") {
+        /** Construye la ruta final para navegar al perfil público de un usuario. */
         fun createRoute(userId: String): String {
             return "user_profile/$userId"
         }
     }
+
+    /** Ruta principal de control con parámetros de conexión al robot. */
     object Main : Screen("main/{host}/{user}/{password}/{forceTouchControl}") {
+        /** Construye la ruta final incluyendo host, credenciales y modo de control. */
         fun createRoute(host: String, user: String, password: String, forceTouchControl: Boolean): String {
             return "main/$host/$user/$password/$forceTouchControl"
         }
     }
 }
 
-// Pantallas con Bottom Navigation
+/**
+ * Pantallas internas de la barra de navegación inferior (zona de control del robot).
+ *
+ * @param route Ruta interna del `NavHost` de control.
+ * @param title Texto visible bajo el icono.
+ * @param icon Icono mostrado en la barra inferior.
+ */
 sealed class BottomNavScreen(
     val route: String,
     val title: String,
@@ -57,6 +75,7 @@ sealed class BottomNavScreen(
     )
 
     companion object {
+        /** Devuelve las pantallas en el orden en el que se pintan en la barra inferior. */
         fun getAllScreens() = listOf(Control, Buzzer, Leds, LineFollow)
     }
 }

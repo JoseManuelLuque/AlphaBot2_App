@@ -17,6 +17,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * Contenido del menú lateral (drawer) de la aplicación.
+ *
+ * Incluye accesos rápidos a las pantallas principales y acción de cierre de sesión.
+ *
+ * @param navController Controlador de navegación.
+ * @param onLogout Callback que se ejecuta al cerrar sesión.
+ * @param onDestinationClicked Callback para cerrar el drawer tras navegar.
+ */
 @Composable
 fun DrawerContent(
     navController: NavController,
@@ -26,6 +35,8 @@ fun DrawerContent(
     ModalDrawerSheet {
         Text("AlphaBot2 Menu", modifier = Modifier.padding(16.dp))
         HorizontalDivider()
+
+        // Módulo de control del robot.
         NavigationDrawerItem(
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
             label = { Text("Control Robot") },
@@ -36,6 +47,7 @@ fun DrawerContent(
             }
         )
 
+        // Pantallas sociales y de usuario.
         NavigationDrawerItem(
             icon = { Icon(Icons.Default.Person, contentDescription = null) },
             label = { Text("Perfil") },
@@ -55,6 +67,7 @@ fun DrawerContent(
             }
         )
 
+        // Documentación legal y de privacidad.
         NavigationDrawerItem(
             icon = { Icon(Icons.Default.Settings, contentDescription = null) },
             label = { Text("Configuración") },
@@ -96,6 +109,8 @@ fun DrawerContent(
         )
 
         Spacer(modifier = Modifier.weight(1f))
+
+        // Acción final: cerrar sesión actual.
         NavigationDrawerItem(
             icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
             label = { Text("Cerrar Sesión") },

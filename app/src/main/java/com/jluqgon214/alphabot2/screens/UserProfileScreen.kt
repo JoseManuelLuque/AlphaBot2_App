@@ -58,8 +58,22 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Pantalla para ver el perfil de otro usuario y sus posts.
- * Los admins pueden bloquear, desbloquear y eliminar cuentas.
+ * Pantalla de perfil de otro usuario.
+ *
+ * Permite ver:
+ * - Información del usuario (nombre, email, rol)
+ * - Posts publicados por ese usuario
+ * - Foto de perfil
+ *
+ * FUNCIONES DE ADMIN:
+ * - Bloquear/desbloquear usuarios
+ * - Eliminar cuentas
+ * - Ver historial de bloqueos
+ *
+ * @param userId ID del usuario cuyo perfil se visualiza.
+ * @param navController NavController para navegación.
+ * @param profileViewModel ViewModel para gestión de bloqueos y eliminación.
+ * @param postsViewModel ViewModel para obtener posts del usuario.
  */
 @Composable
 fun UserProfileScreen(

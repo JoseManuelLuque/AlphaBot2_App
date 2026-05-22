@@ -22,6 +22,16 @@ import java.util.UUID
 import kotlin.math.max
 
 
+/**
+ * ViewModel del módulo social (posts y comentarios).
+ *
+ * Se encarga de:
+ * - Escuchar posts/comentarios en tiempo real desde Firestore.
+ * - Crear publicaciones (con imagen opcional en Storage).
+ * - Gestionar likes de posts y comentarios.
+ * - Crear comentarios.
+ * - Borrar posts propios y limpiar recursos asociados.
+ */
 class PostsViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
@@ -125,10 +135,19 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /** Limpia el error actual para que la UI deje de mostrarlo. */
     fun clearError() {
         _error.value = null
     }
 
+    /**
+     * Crea una publicación nueva.
+     *
+     * @param title Título opcional (máx. 120).
+     * @param text Texto opcional (máx. 2000).
+     * @param imageUri URI de imagen local opcional.
+     * @param onSuccess Callback ejecutado tras creación correcta.
+     */
     fun createPost(title: String, text: String, imageUri: Uri?, onSuccess: () -> Unit = {}) {
         val uid = auth.currentUser?.uid ?: run {
             _error.value = "Debes iniciar sesión para publicar"
@@ -197,6 +216,11 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Alterna el like del usuario actual sobre un post.
+     *
+     * @param postId ID del post objetivo.
+     */
     fun togglePostLike(postId: String) {
         val uid = auth.currentUser?.uid ?: return
         val postRef = firestore.collection("posts").document(postId)
@@ -223,6 +247,12 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Añade un comentario a un post.
+     *
+     * @param postId ID del post a comentar.
+     * @param text Texto del comentario (máx. 500).
+     */
     fun addComment(postId: String, text: String) {
         val uid = auth.currentUser?.uid ?: run {
             _error.value = "Debes iniciar sesión para comentar"
@@ -276,6 +306,12 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Alterna el like del usuario actual sobre un comentario.
+     *
+     * @param postId ID del post padre.
+     * @param commentId ID del comentario objetivo.
+     */
     fun toggleCommentLike(postId: String, commentId: String) {
         val uid = auth.currentUser?.uid ?: return
         val commentRef = firestore.collection("posts").document(postId)
@@ -304,6 +340,13 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Borra un post y sus comentarios.
+     *
+     * Nota: por seguridad esta implementación solo permite borrar posts propios.
+     *
+     * @param post Publicación a eliminar.
+     */
     fun deletePost(post: PostModel) {
         val uid = auth.currentUser?.uid ?: return
         if (post.userId != uid) {
@@ -348,6 +391,12 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Extrae la ruta interna de Firebase Storage desde una URL de descarga pública.
+     *
+     * @param url URL pública de Storage.
+     * @return Ruta interna (por ejemplo `posts/uid/archivo.jpg`) o `null`.
+     */
     private fun extractStoragePath(url: String): String? {
         if (url.isBlank()) return null
         val after = url.substringAfter("/o/", "")
@@ -359,6 +408,7 @@ class PostsViewModel : ViewModel() {
         }
     }
 
+    /** Libera listeners de Firestore al destruirse el ViewModel. */
     override fun onCleared() {
         super.onCleared()
         postsListener?.remove()
@@ -367,6 +417,7 @@ class PostsViewModel : ViewModel() {
     }
 }
 
+/** Convierte un documento de Firestore en el modelo de post de la app. */
 private fun DocumentSnapshot.toPostModel(): PostModel {
     return PostModel(
         id = getString("id") ?: id,
@@ -382,6 +433,7 @@ private fun DocumentSnapshot.toPostModel(): PostModel {
     )
 }
 
+/** Convierte un documento de Firestore en el modelo de comentario de la app. */
 private fun DocumentSnapshot.toCommentModel(postId: String): CommentModel {
     return CommentModel(
         id = getString("id") ?: id,

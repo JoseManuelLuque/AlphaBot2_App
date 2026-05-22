@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Environment variables file (contains secrets like OAuth client IDs)
+.env
+

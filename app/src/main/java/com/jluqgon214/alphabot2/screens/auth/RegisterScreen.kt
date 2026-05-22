@@ -15,6 +15,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import com.jluqgon214.alphabot2.viewmodels.AuthViewModel
 
+/**
+ * Pantalla de registro de nuevos usuarios.
+ *
+ * Permite crear una cuenta proporcionando:
+ * - Correo electrónico
+ * - Nombre de usuario
+ * - Contraseña (con confirmación)
+ *
+ * Valida que las contraseñas coincidan y que todos los campos estén rellenos.
+ *
+ * @param navController NavController para navegar entre pantallas.
+ * @param authViewModel ViewModel que gestiona el registro.
+ */
 @Composable
 fun RegisterScreen(
     navController: NavController,

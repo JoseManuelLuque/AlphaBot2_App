@@ -32,6 +32,18 @@ import androidx.navigation.NavController
 import com.jluqgon214.alphabot2.R
 import com.jluqgon214.alphabot2.navigation.Screen
 
+/**
+ * Pantalla "Sobre mí" del desarrollador.
+ *
+ * Muestra:
+ * - Logos del proyecto (mi_logo) e instituto (alberti)
+ * - Nombre: José Manuel Luque González
+ * - Email de contacto
+ * - Descripción del TFG (Trabajo Fin de Grado)
+ * - Enlaces a Términos y Privacidad
+ *
+ * @param navController NavController para navegar a otras pantallas.
+ */
 @Composable
 fun AboutScreen(navController: NavController) {
     val scroll = rememberScrollState()

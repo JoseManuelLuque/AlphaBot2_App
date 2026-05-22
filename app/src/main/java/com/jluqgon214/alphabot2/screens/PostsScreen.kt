@@ -79,6 +79,22 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Pantalla de feed de posts.
+ *
+ * Permite a los usuarios:
+ * - Ver posts de todos los usuarios en tiempo real
+ * - Crear nuevos posts (texto + imagen opcional)
+ * - Comentar en posts
+ * - Dar like a posts y comentarios
+ * - Eliminar posts propios
+ * - Ver perfiles de otros usuarios
+ *
+ * Las imágenes se comprimen automáticamente antes de subir para optimizar storage.
+ *
+ * @param postsViewModel ViewModel que gestiona posts, comentarios y likes.
+ * @param navController NavController opcional para navegar a perfiles.
+ */
 @Composable
 fun PostsScreen(
     postsViewModel: PostsViewModel = viewModel(),
@@ -238,6 +254,21 @@ fun PostsScreen(
     }
 }
 
+/**
+ * Diálogo modal para crear una nueva publicación.
+ *
+ * @param title Título actual.
+ * @param onTitleChange Callback de cambio de título.
+ * @param text Texto actual.
+ * @param onTextChange Callback de cambio de texto.
+ * @param selectedImageUri Imagen seleccionada (opcional).
+ * @param creatingPost Indica si se está publicando en este momento.
+ * @param compressingImage Indica si se está comprimiendo una imagen.
+ * @param onPickImage Acción para abrir selector de imagen.
+ * @param onClearImage Acción para quitar la imagen actual.
+ * @param onDismiss Acción para cerrar el diálogo.
+ * @param onPublish Acción para publicar.
+ */
 @Composable
 private fun CreatePostDialog(
     title: String,
@@ -332,6 +363,21 @@ private fun CreatePostDialog(
     )
 }
 
+/**
+ * Tarjeta visual de un post con acciones de like, comentarios y borrado.
+ *
+ * @param post Post a renderizar.
+ * @param comments Comentarios del post.
+ * @param currentUserId Usuario actual autenticado.
+ * @param sendingComment Estado de envío de comentario para bloquear UI.
+ * @param deletingPost Estado de borrado para mostrar progreso.
+ * @param onTogglePostLike Acción de like/unlike en el post.
+ * @param onSendComment Acción para publicar comentario.
+ * @param onToggleCommentLike Acción de like/unlike en comentarios.
+ * @param onDeletePost Acción de borrar post.
+ * @param userRole Rol actual del usuario en UI.
+ * @param onViewProfile Acción para abrir perfil de usuario.
+ */
 @Composable
 internal fun PostCard(
     post: PostModel,
@@ -541,6 +587,13 @@ internal fun PostCard(
     }
 }
 
+/**
+ * Fila visual de comentario con avatar, texto y botón de like.
+ *
+ * @param comment Comentario a mostrar.
+ * @param currentUserId Usuario actual para marcar si ya dio like.
+ * @param onToggleLike Acción para alternar like del comentario.
+ */
 @Composable
 private fun CommentItem(
     comment: CommentModel,
@@ -591,6 +644,12 @@ private fun CommentItem(
     }
 }
 
+/**
+ * Formatea milisegundos epoch a `dd MMM` en español.
+ *
+ * @param millis Marca temporal en milisegundos.
+ * @return Fecha corta formateada o cadena vacía si no es válida.
+ */
 private fun formatDateDayMonth(millis: Long): String {
     if (millis <= 0L) return ""
     val formatter = SimpleDateFormat("dd MMM", Locale("es", "ES"))
@@ -599,6 +658,13 @@ private fun formatDateDayMonth(millis: Long): String {
     }
 }
 
+/**
+ * Comprime una imagen local para reducir tamaño antes de subirla a Storage.
+ *
+ * @param context Contexto para acceder a `contentResolver` y caché.
+ * @param sourceUri URI de la imagen original.
+ * @return URI de archivo temporal comprimido o `null` si falla.
+ */
 private suspend fun compressImageForPost(context: android.content.Context, sourceUri: Uri): Uri? = withContext(Dispatchers.IO) {
     try {
         val resolver = context.contentResolver
@@ -628,6 +694,11 @@ private suspend fun compressImageForPost(context: android.content.Context, sourc
     }
 }
 
+/**
+ * Borra un archivo temporal si la URI corresponde a esquema `file://`.
+ *
+ * @param uri URI a validar y eliminar.
+ */
 private fun deleteIfTempFile(uri: Uri?) {
     if (uri == null) return
     if (uri.scheme != "file") return

@@ -1,19 +1,38 @@
 plugins {
+    // Plugins de Gradle necesarios para desarrollar una app Android con Kotlin
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-
+    // Plugin para conexión con Firebase
     id("com.google.gms.google-services")
 }
 
+// ========== CONFIGURACIÓN DE VARIABLES DE ENTORNO ==========
+// Lee las credenciales de OAuth (Google Client ID) desde un archivo .env
+// Esto evita que tengamos que poner credentials sensibles directamente en el código
+val envFile = rootProject.file(".env")
+val envMap: Map<String, String> = if (envFile.exists()) {
+    envFile.readText(Charsets.UTF_8)
+        .lineSequence()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") }
+        .mapNotNull {
+            val idx = it.indexOf('=')
+            if (idx <= 0) null else it.substring(0, idx).trim() to it.substring(idx + 1).trim()
+        }
+        .toMap()
+} else emptyMap()
+val googleWebClientId: String = envMap["GOOGLE_WEB_CLIENT_ID"] ?: ""
+
+// ========== CONFIGURACIÓN ANDROID ==========
 android {
     namespace = "com.jluqgon214.alphabot2"
     compileSdk = 34
 
     defaultConfig {
         applicationId = "com.jluqgon214.alphabot2"
-        minSdk = 28
-        targetSdk = 34
+        minSdk = 28 // Versión mínima de Android soportada
+        targetSdk = 34 // Versión de Android para la que compilamos
         versionCode = 1
         versionName = "1.0"
 
@@ -21,6 +40,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        // Inyectar el Google Client ID como constante en BuildConfig
+        // Accesible desde Kotlin como BuildConfig.GOOGLE_WEB_CLIENT_ID
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${googleWebClientId}\"")
     }
 
     buildTypes {
@@ -32,6 +54,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -41,6 +64,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // Necesario para exponer BuildConfig fields desde build.gradle (p. ej. GOOGLE_WEB_CLIENT_ID)
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"

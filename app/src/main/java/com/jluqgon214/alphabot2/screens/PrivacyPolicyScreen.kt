@@ -18,6 +18,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Pantalla de Política de Privacidad.
+ *
+ * Muestra la versión en español (traducida) de la política de privacidad
+ * de la app AlphaBot2.
+ *
+ * Contiene información sobre:
+ * - Recopilación y uso de datos
+ * - Acceso de terceros
+ * - Derechos del usuario (opt-out, eliminación de datos)
+ * - Protección de menores
+ * - Medidas de seguridad
+ */
 @Composable
 fun PrivacyPolicyScreen() {
     val scroll = rememberScrollState()

@@ -25,24 +25,39 @@ import com.jluqgon214.alphabot2.navigation.Screen
 import com.jluqgon214.alphabot2.ui.theme.AlphaBot2Theme
 import kotlinx.coroutines.launch
 
+/**
+ * MainActivity: Punto de entrada principal de la aplicación.
+ *
+ * Responsable de:
+ * - Configurar el tema visual
+ * - Gestionar la navegación entre pantallas
+ * - Controlar el menú lateral (drawer)
+ * - Gestionar el mando Bluetooth (gamepad)
+ */
 class MainActivity : ComponentActivity() {
-    // Gestor de gamepad compartido
+    // Objeto compartido para gestionar la conexión con mandos Bluetooth
     val gamepadManager = GamepadManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Habilitar edge-to-edge (usar todo el espacio de la pantalla)
         enableEdgeToEdge()
+        // Configurar la interfaz usando Jetpack Compose
         setContent {
             AlphaBot2Theme {
+                // Controlador de navegación
                 val navController = rememberNavController()
+                // Estado del menú lateral (abierto/cerrado)
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
+                // Estado para mostrar/ocultar el drawer según la pantalla actual
                 val showDrawer = remember { mutableStateOf(false) }
 
-                // Observar cambios de ruta para mostrar/ocultar drawer
+                // Monitorizar cambios de pantalla para saber cuándo mostrar el drawer
                 LaunchedEffect(navController) {
                     navController.currentBackStackEntryFlow.collect { backStackEntry ->
                         val route = backStackEntry.destination.route
+                        // No mostrar drawer en pantallas de login/registro
                         showDrawer.value = route !in listOf(Screen.Login.route, Screen.Register.route)
                     }
                 }

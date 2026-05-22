@@ -9,9 +9,22 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+/**
+ * Gestor central de conexión SSH al robot.
+ *
+ * Se usa para lanzar scripts remotos y consultar estado de servicios en Raspberry Pi.
+ */
 object SSHManager {
     private var session: Session? = null
 
+    /**
+     * Abre una sesión SSH.
+     *
+     * @param host IP/host del robot.
+     * @param user Usuario SSH.
+     * @param pass Contraseña SSH.
+     * @param onResult Callback con resultado de conexión.
+     */
     fun connect(host: String, user: String, pass: String, onResult: (Boolean) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -32,6 +45,12 @@ object SSHManager {
         }
     }
 
+    /**
+     * Ejecuta un comando remoto sobre la sesión activa y devuelve salida estándar/error.
+     *
+     * @param command Comando de shell a ejecutar en Raspberry Pi.
+     * @param onOutput Callback con texto resultante.
+     */
     fun executeCommand(command: String, onOutput: (String) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             if (session?.isConnected == true) {
@@ -61,25 +80,26 @@ object SSHManager {
                         if (result.isNotBlank()) {
                             onOutput(result)
                         } else {
-                            onOutput("Command executed with no output.")
+                            onOutput("Comando ejecutado sin salida.")
                         }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                     withContext(Dispatchers.Main) {
-                        onOutput("Exception: ${e.message}")
+                        onOutput("Excepción: ${e.message}")
                     }
                 } finally {
                     channelExec?.disconnect()
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    onOutput("Cannot execute command, not connected.")
+                    onOutput("No se puede ejecutar el comando: SSH no conectado.")
                 }
             }
         }
     }
 
+    /** Cierra la sesión SSH activa y limpia recursos. */
     fun disconnect() {
         CoroutineScope(Dispatchers.IO).launch {
             try {

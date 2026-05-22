@@ -18,6 +18,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Pantalla de Términos y Condiciones.
+ *
+ * Muestra la versión en español (traducida) de los términos y condiciones
+ * de uso de la app AlphaBot2.
+ *
+ * Contiene información sobre:
+ * - Licencia de uso
+ * - Limitaciones de responsabilidad
+ * - Derechos del usuario
+ * - Políticas de actualización
+ */
 @Composable
 fun TermsScreen() {
     val scroll = rememberScrollState()

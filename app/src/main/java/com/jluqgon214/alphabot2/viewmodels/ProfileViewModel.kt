@@ -16,6 +16,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.net.URLDecoder
 
+/**
+ * ViewModel del perfil de usuario y funciones administrativas.
+ *
+ * Gestiona datos del usuario logueado (nombre, email, avatar), acciones de cuenta
+ * (editar, borrar) y herramientas de administración (promoción, bloqueo y eliminación
+ * de otros usuarios).
+ */
 class ProfileViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
@@ -73,6 +80,7 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
+    /** Actualiza el nombre visible del usuario actual en Firestore. */
     fun updateUsername(newName: String) {
         val uid = auth.currentUser?.uid ?: return
         _loading.value = true
@@ -85,7 +93,7 @@ class ProfileViewModel : ViewModel() {
                 firestore.collection("usuarios").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
                 _username.value = newName
             } catch (e: Exception) {
-                _error.value = e.message ?: "Error updating username"
+                _error.value = e.message ?: "Error actualizando nombre de usuario"
             } finally {
                 _loading.value = false
             }
@@ -108,13 +116,12 @@ class ProfileViewModel : ViewModel() {
         _loading.value = true
         _error.value = null
         try {
-            // Read existing avatar path (if any) so we can delete old file if needed
+            // Leer avatar previo para limpiar archivos antiguos si existieran.
             val docRef = firestore.collection("usuarios").document(uid)
             val existingDoc = try { docRef.get().await() } catch (t: Exception) { null }
 
             val existingPath: String? = existingDoc?.getString("avatarPath") ?: existingDoc?.getString("avatarUrl")?.let { url ->
-                // Try to decode the storage path from a download URL like
-                // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/avatars%2Fuid.jpg?alt=media&token=...
+                // Intentar extraer la ruta interna de Storage desde la URL pública.
                 val after = url.substringAfter("/o/", "")
                 if (after.isNotEmpty()) {
                     try {
@@ -123,23 +130,23 @@ class ProfileViewModel : ViewModel() {
                 } else null
             }
 
-            // New storage path (we use a stable path per user so uploads overwrite by default)
+            // Ruta estable por usuario para evitar duplicados de avatar.
             val newPath = "avatars/$uid.jpg"
 
-            // If there's an existing different path, try to delete it to avoid orphan files
+            // Si la ruta previa es distinta, intentar borrar el archivo antiguo.
             if (!existingPath.isNullOrEmpty() && existingPath != newPath) {
                 try {
                     storage.reference.child(existingPath).delete().await()
                 } catch (_: Exception) {
-                    // ignore deletion errors
+                    // Ignoramos el fallo de limpieza para no bloquear la subida nueva.
                 }
             }
 
-            // Upload to Storage under avatars/{uid}.jpg
+            // Subir avatar a Storage en avatars/{uid}.jpg.
             val ref = storage.reference.child(newPath)
             ref.putFile(uri).await()
 
-            // Get downloadable URL and save it in Firestore (store both URL and path)
+            // Guardar URL pública y ruta interna en Firestore.
             val downloadUrl = ref.downloadUrl.await().toString()
             val data = mapOf(
                 "avatarUrl" to downloadUrl,
@@ -148,17 +155,23 @@ class ProfileViewModel : ViewModel() {
             firestore.collection("usuarios").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
             _avatarUrl.value = downloadUrl
         } catch (e: Exception) {
-            _error.value = e.message ?: "Error uploading avatar"
+            _error.value = e.message ?: "Error subiendo avatar"
         } finally {
             _loading.value = false
         }
     }
 
+    /** Limpia el mensaje de error actual para que la UI deje de mostrarlo. */
     fun clearError() {
         _error.value = null
     }
 
     // ============ FUNCIONES DE ADMIN ============
+    /**
+     * Eleva al usuario actual a rol administrador tras validar contraseña interna.
+     *
+     * @param password Clave de acceso al modo admin.
+     */
     fun promoteToAdmin(password: String) {
         val uid = auth.currentUser?.uid ?: return
         val adminPassword = "admin"  // Contraseña hardcodeada (en producción, usar backend)
@@ -178,7 +191,7 @@ class ProfileViewModel : ViewModel() {
                 firestore.collection("usuarios").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
                 _role.value = "admin"
             } catch (e: Exception) {
-                _error.value = e.message ?: "Error promoting to admin"
+                _error.value = e.message ?: "Error asignando rol de administrador"
             } finally {
                 _loading.value = false
             }
@@ -186,6 +199,13 @@ class ProfileViewModel : ViewModel() {
     }
 
     // Bloquear usuario por X horas
+    /**
+     * Bloquea a un usuario durante un número de horas y registra el evento en logs.
+     *
+     * @param userId Usuario objetivo del bloqueo.
+     * @param hours Duración del bloqueo.
+     * @param reason Motivo del bloqueo.
+     */
     fun blockUser(userId: String, hours: Long, reason: String) {
         val currentUid = auth.currentUser?.uid ?: return
         val blockedUntil = System.currentTimeMillis() + (hours * 60 * 60 * 1000)
@@ -229,6 +249,11 @@ class ProfileViewModel : ViewModel() {
     }
 
     // Desbloquear usuario
+    /**
+     * Elimina el bloqueo activo de un usuario.
+     *
+     * @param userId Usuario a desbloquear.
+     */
     fun unblockUser(userId: String) {
         _loading.value = true
         _error.value = null
@@ -251,7 +276,12 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // Obtener perfil de otro usuario
+    /**
+     * Obtiene el perfil público de otro usuario.
+     *
+     * @param userId Usuario del que se consulta el perfil.
+     * @return Mapa de campos de Firestore o `null` si falla la consulta.
+     */
     suspend fun fetchUserProfile(userId: String): Map<String, Any>? {
         return try {
             firestore.collection("usuarios").document(userId).get().await().data
@@ -260,6 +290,11 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Elimina la cuenta de un usuario (función de administración).
+     *
+     * @param userId Usuario a eliminar.
+     */
     fun deleteUser(userId: String) {
         _loading.value = true
         _error.value = null
@@ -278,7 +313,11 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // Cargar logs de bloqueos de un usuario
+    /**
+     * Carga el historial de bloqueos de un usuario ordenado por fecha descendente.
+     *
+     * @param userId Usuario del que se cargan los logs.
+     */
     fun loadBloqueos(userId: String) {
         viewModelScope.launch {
             try {
@@ -288,40 +327,44 @@ class ProfileViewModel : ViewModel() {
                     .get()
                     .await()
 
-                val blocos = bloqueosSnapshot.documents.map { doc ->
+                val bloqueosList = bloqueosSnapshot.documents.map { doc ->
                     doc.data ?: emptyMap()
                 }
-                _bloqueos.value = blocos
+                _bloqueos.value = bloqueosList
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error cargando logs"
             }
         }
     }
 
+    /**
+     * Borra completamente la cuenta del usuario actual:
+     * documento Firestore, avatar en Storage y usuario en Firebase Auth.
+     */
     fun deleteAccount() {
         val uid = auth.currentUser?.uid ?: return
         _loading.value = true
         _error.value = null
         viewModelScope.launch {
             try {
-                // First, try to read avatarUrl so we can delete storage object
+                // Leer avatar actual para intentar limpiar Storage.
                 val avatarDoc = firestore.collection("usuarios").document(uid).get().await()
                 val avatarUrl = avatarDoc.getString("avatarUrl")
 
-                // Delete Firestore document
+                // Borrar documento en Firestore.
                 firestore.collection("usuarios").document(uid).delete().await()
 
-                // Delete avatar from Storage if exists (we uploaded to avatars/{uid}.jpg)
+                // Borrar avatar en Storage si existe.
                 if (!avatarUrl.isNullOrEmpty()) {
                     try {
                         val ref = storage.reference.child("avatars/$uid.jpg")
                         ref.delete().await()
                     } catch (_: Exception) {
-                        // ignore storage delete errors
+                        // Ignoramos error de limpieza para no bloquear borrado de cuenta.
                     }
                 }
 
-                // Delete auth user
+                // Borrar usuario en Firebase Auth.
                 val user = auth.currentUser
                 if (user != null) {
                     user.delete().await()
@@ -329,7 +372,7 @@ class ProfileViewModel : ViewModel() {
 
                 _deleted.value = true
             } catch (e: Exception) {
-                _error.value = e.message ?: "Error deleting account. You may need to re-authenticate."
+                _error.value = e.message ?: "Error eliminando cuenta. Puede que debas volver a autenticarte."
             } finally {
                 _loading.value = false
             }

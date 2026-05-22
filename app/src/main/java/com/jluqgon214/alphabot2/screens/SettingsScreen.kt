@@ -55,6 +55,21 @@ import com.jluqgon214.alphabot2.viewmodels.LanguageViewModel
 import com.jluqgon214.alphabot2.viewmodels.ProfileViewModel
 import kotlinx.coroutines.launch
 
+/**
+ * Pantalla de Ajustes/Preferencias.
+ *
+ * Contiene:
+ * - Selector de idioma
+ * - Notificaciones
+ * - Apariencia (tema)
+ * - Panel de administrador (solo para admins)
+ * - Información de la app
+ *
+ * Los admins pueden acceder a herramientas adicionales introduciendo contraseña.
+ *
+ * @param languageViewModel ViewModel para gestionar idioma de la app.
+ * @param profileViewModel ViewModel para datos del usuario (rol, funciones admin).
+ */
 @Composable
 fun SettingsScreen(
     languageViewModel: LanguageViewModel = viewModel(),
@@ -359,6 +374,13 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * Fila informativa de opciones futuras (deshabilitadas) en ajustes.
+ *
+ * @param icon Icono descriptivo de la opción.
+ * @param title Título de la opción.
+ * @param subtitle Descripción breve de su objetivo.
+ */
 @Composable
 private fun UpcomingOptionRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,

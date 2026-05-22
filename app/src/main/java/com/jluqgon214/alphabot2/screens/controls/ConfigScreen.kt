@@ -9,6 +9,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Pantalla de configuración de conexión al robot.
+ *
+ * Permite introducir:
+ * - IP/hostname del robot
+ * - Usuario SSH
+ * - Contraseña SSH
+ * - Opción para forzar joysticks táctiles (sin mando Bluetooth)
+ *
+ * Al conectar, establece conexión SSH y navega a la pantalla de control.
+ *
+ * @param onConnect Callback que recibe (host, user, password, forceTouchControl)
+ * cuando el usuario presiona conectar.
+ */
 @Composable
 fun ConfigScreen(
     onConnect: (String, String, String, Boolean) -> Unit

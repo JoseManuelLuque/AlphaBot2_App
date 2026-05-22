@@ -14,12 +14,34 @@ import androidx.compose.ui.unit.sp
 import com.jluqgon214.alphabot2.network.SSHManager
 import kotlinx.coroutines.launch
 
+/**
+ * Modelo de datos para las canciones/tonos disponibles.
+ *
+ * @param name Nombre de la canción
+ * @param icon Emoji representativo
+ * @param description Descripción breve
+ */
 data class Song(
     val name: String,
     val icon: String,
     val description: String
 )
 
+/**
+ * Pantalla de control del Buzzer (altavoz) del robot.
+ *
+ * Permite reproducir diferentes canciones/tonos en el robot:
+ * - Star Wars
+ * - Happy Birthday
+ * - Super Mario
+ * - Y muchos más...
+ *
+ * Se conecta vía SSH al robot para enviar comandos de reproducción.
+ *
+ * @param host IP del robot
+ * @param user Usuario SSH del robot
+ * @param password Contraseña SSH del robot
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuzzerScreen(

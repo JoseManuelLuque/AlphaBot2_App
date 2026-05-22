@@ -44,23 +44,27 @@ import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-// ...existing imports...
 
 
 /**
- * Pantalla de perfil.
+ * Pantalla de perfil del usuario actual.
  *
- * Explicación:
- * - Esta pantalla permite cambiar el nombre y el avatar del usuario.
- * - Para el avatar usamos un flujo en 2 pasos:
- *   1) El usuario elige una imagen con el selector del sistema (GetContent)
- *   2) Abrimos UCrop para que el usuario decida el recorte (interactivo)
- *      y generamos un archivo temporal en cache.
- *   3) Subimos ese archivo temporal a Firebase Storage y guardamos la URL en Firestore.
+ * Funcionalidades:
+ * - Ver información: nombre de usuario, email y foto de perfil
+ * - Editar nombre de usuario y avatar
+ * - Cambiar foto de perfil con recorte interactivo (UCrop)
+ * - Guardar cambios en Firebase
+ * - Eliminar la cuenta
+ * - Logout/Cerrar sesión
  *
- * Importante:
- * - El archivo temporal se borra al terminar la subida para no llenar el almacenamiento local.
- * - Los botones se deshabilitan mientras `loading == true` para evitar acciones simultáneas.
+ * Flujo de imagen:
+ * 1. Usuario selecciona foto del dispositivo (GetContent)
+ * 2. Se abre UCrop para recorte interactivo
+ * 3. Se sube a Firebase Storage y se guarda URL en Firestore
+ * 4. Se limpia el archivo temporal
+ *
+ * @param profileViewModel ViewModel que gestiona el perfil y datos de usuario.
+ * @param navController NavController opcional para navegación.
  */
 
 @Composable
@@ -92,7 +96,7 @@ fun ProfileScreen(
                     try {
                         profileViewModel.uploadAvatarAndSave(resultUri)
                     } finally {
-                        // Attempt to delete the temporary file created for crop
+                        // Intentar borrar el archivo temporal creado durante el recorte.
                         try {
                             val f = File(resultUri.path ?: "")
                             if (f.exists()) f.delete()
@@ -115,12 +119,12 @@ fun ProfileScreen(
     // y lanzamos UCrop para que el usuario decida el recorte.
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            // Create a destination temp file for UCrop output
+            // Crear archivo temporal de destino para la salida de UCrop.
             val destFile = File(context.cacheDir, "avatar_crop_${System.currentTimeMillis()}.jpg")
-            // Use FileProvider to get a content:// URI for the dest file (safe on Android N+)
+            // Usar FileProvider para obtener una URI content:// segura en Android N+.
             val destUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", destFile)
 
-            // UCrop intent
+            // Configuración del recorte.
             val options = UCrop.Options().apply {
                 setCompressionQuality(80)
                 setHideBottomControls(false)
@@ -142,15 +146,15 @@ fun ProfileScreen(
         }
     }
 
-    // Update editableUsername when loaded username changes
+    // Sincronizar campo editable cuando cambia el nombre cargado desde Firestore.
     LaunchedEffect(username) {
         editableUsername = username
     }
 
-    // Navigate away if account deleted
+    // Si la cuenta se elimina, salir a login limpiando navegación previa.
     LaunchedEffect(deleted) {
         if (deleted) {
-            // Navigate to login (replace stack)
+            // Navegar a login reemplazando la pila.
             navController?.navigate("login") {
                 popUpTo(0)
             }
@@ -227,11 +231,11 @@ fun ProfileScreen(
             }
         }
 
-        // Logout + Delete account buttons
+        // Botones de cierre de sesión y eliminación de cuenta.
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = {
-                    // Logout simple
+                    // Cerrar sesión actual en Firebase Auth.
                     try {
                         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
                     } catch (_: Exception) {

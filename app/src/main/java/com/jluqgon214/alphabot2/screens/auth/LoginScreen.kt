@@ -1,29 +1,65 @@
 package com.jluqgon214.alphabot2.screens.auth
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import com.jluqgon214.alphabot2.utils.DataStoreManager
-import com.jluqgon214.alphabot2.viewmodels.AuthViewModel
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.navigation.NavController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import android.app.Activity
 import com.google.android.gms.tasks.Task
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.common.api.ApiException
+import com.jluqgon214.alphabot2.utils.DataStoreManager
+import com.jluqgon214.alphabot2.viewmodels.AuthViewModel
+import com.jluqgon214.alphabot2.BuildConfig
 
+/**
+ * Pantalla de inicio de sesión.
+ *
+ * Permite a los usuarios:
+ * - Iniciar sesión con correo y contraseña
+ * - Iniciar sesión con Google
+ * - Marcar "Recordarme" para autologin en futuras sesiones
+ *
+ * @param navController NavController para navegar entre pantallas.
+ * @param authViewModel ViewModel que gestiona la autenticación.
+ */
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -39,7 +75,7 @@ fun LoginScreen(
     // Google Sign-In setup
     val gso = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("354975164930-oi1d7s6ku3vkn590jmmu69s3s7j6ie10.apps.googleusercontent.com")
+            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
             .requestEmail()
             .build()
     }
@@ -47,17 +83,30 @@ fun LoginScreen(
 
     // Launcher para Google Sign-In
     val googleSignInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK) {
+            // resultCode=0 significa que el usuario canceló el diálogo (presionó atrás)
+            // Otros códigos indican errores diferentes
+            val msg = if (result.resultCode == 0) {
+                "Google Sign-In: cancelado por el usuario"
+            } else {
+                "Google Sign-In: falló con código ${result.resultCode}"
+            }
+            errorMessage = msg
+            return@rememberLauncherForActivityResult
+        }
+
         val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
-            val account = task.getResult(Exception::class.java)
+            val account = task.getResult(ApiException::class.java)
             if (account?.idToken != null) {
-                // Autenticar con Firebase usando el token de Google
                 authViewModel.loginWithGoogle(account.idToken!!)
             } else {
                 errorMessage = "No se pudo obtener el token de Google"
             }
+        } catch (e: ApiException) {
+            errorMessage = "Código de error: ${e.statusCode}"
         } catch (e: Exception) {
-            errorMessage = "Error en Google Sign-In: ${e.message}"
+            errorMessage = "Error: ${e.message}"
         }
     }
 
@@ -156,22 +205,40 @@ fun LoginScreen(
 
                 Button(
                     onClick = {
-                        // Inicia Google Sign-In con Firebase
                         val signInIntent = googleSignInClient.signInIntent
                         googleSignInLauncher.launch(signInIntent)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = ButtonDefaults.outlinedButtonBorder
-                ) {
-                    Text(
-                        text = "🔍 Google",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.ui.graphics.Color(0xFF1F2937)
+                    ),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 2.dp,
+                        pressedElevation = 6.dp
                     )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "G",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(
+                            text = "Continuar con Google",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
                 }
 
                 LaunchedEffect(authState) {
