@@ -102,11 +102,6 @@ fun MainScreenWithNav(
                     innerPadding = innerPadding
                 )
             }
-
-            // Pantalla de Perfil
-            composable(BottomNavScreen.Profile.route) {
-                ProfileScreen()
-            }
         }
     }
 }

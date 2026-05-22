@@ -18,6 +18,16 @@ import com.jluqgon214.alphabot2.network.SSHManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+// TODO; Dejo la interfaz de usuario para ver como quedaria la final pero no he podido hacer que el robot siga la linea,
+//  el servidor se conecta y recibe los comandos pero el robot no responde como deberia,
+//  se vuelve loco y no es capaz de seguir la linea y no se porque
+//  lo he intentado solucionar de todas las formas que conozco pero no he sido capaz
+
+/**
+ * Pantalla de control para el seguimiento de línea.
+ * Permite calibrar sensores, iniciar/parar el seguimiento y ajustar la velocidad.
+ */
+
 @Composable
 fun LineFollowScreen(
     host: String,
@@ -68,6 +78,9 @@ fun LineFollowScreen(
                     LineFollowManager.stop()
                 }
                 LineFollowManager.disconnect()
+
+                // Me gusta cerrar las conexiones SSH para que no se vayan acumulando, aunque el servidor
+                // se encargue de cerrarlas al cerrar la sesión, prefiero hacerlo yo mismo para evitar problemas
                 SSHManager.disconnect()
             }
         }

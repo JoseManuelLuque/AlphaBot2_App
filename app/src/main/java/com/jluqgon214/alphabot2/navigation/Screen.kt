@@ -48,13 +48,7 @@ sealed class BottomNavScreen(
         icon = Icons.Default.ShowChart
     )
 
-    object Profile : BottomNavScreen(
-        route = "profile",
-        title = "Perfil",
-        icon = Icons.Default.Person
-    )
-
     companion object {
-        fun getAllScreens() = listOf(Control, Buzzer, Leds, LineFollow, Profile)
+        fun getAllScreens() = listOf(Control, Buzzer, Leds, LineFollow)
     }
 }
