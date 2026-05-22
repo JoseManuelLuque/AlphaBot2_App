@@ -85,6 +85,9 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore") // Para Cloud Firestore
     implementation("com.google.firebase:firebase-storage") // Para Cloud Storage para Firebase
 
+    // Google Sign-In para autenticación con Google
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
     // JSch library for SSH connections
     implementation("com.jcraft:jsch:0.1.55")
 

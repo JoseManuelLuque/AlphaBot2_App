@@ -11,6 +11,10 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
@@ -33,10 +37,18 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
+                val showDrawer = remember { mutableStateOf(false) }
 
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    drawerContent = {
+                // Observar cambios de ruta para mostrar/ocultar drawer
+                LaunchedEffect(navController) {
+                    navController.currentBackStackEntryFlow.collect { backStackEntry ->
+                        val route = backStackEntry.destination.route
+                        showDrawer.value = route !in listOf(Screen.Login.route, Screen.Register.route)
+                    }
+                }
+
+                val drawerContentLambda = if (showDrawer.value) {
+                    @Composable {
                         DrawerContent(navController = navController, onLogout = {
                             scope.launch {
                                 drawerState.close()
@@ -51,17 +63,19 @@ class MainActivity : ComponentActivity() {
                                 }
                             })
                     }
+                } else {
+                    @Composable {}
+                }
+
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    drawerContent = drawerContentLambda
                 ) {
                     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         NavGraph(
                             navController = navController,
                             innerPadding = innerPadding,
-                            gamepadManager = gamepadManager,
-                            onMenuClick = {
-                                scope.launch {
-                                    drawerState.open()
-                                }
-                            }
+                            gamepadManager = gamepadManager
                         )
                     }
                 }

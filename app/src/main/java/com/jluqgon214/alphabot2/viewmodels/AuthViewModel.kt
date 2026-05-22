@@ -2,7 +2,9 @@ package com.jluqgon214.alphabot2.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +60,43 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    // Completa la autenticación con Google después de que el usuario autoriza.
+    fun loginWithGoogle(idToken: String) {
+        _authState.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                val credential = GoogleAuthProvider.getCredential(idToken, null)
+                val result = _auth.signInWithCredential(credential).await()
+                val user = result.user
+
+                if (user != null) {
+                    // Verificar si el usuario está bloqueado.
+                    val mensajeBloqueo = comprobarBloqueo(user.uid)
+
+                    if (mensajeBloqueo != null) {
+                        _auth.signOut()
+                        _authState.value = AuthState.Error(mensajeBloqueo)
+                    } else {
+                        // Si es la primera vez, crear documento en Firestore.
+                        val userDoc = _firestore.collection("usuarios").document(user.uid).get().await()
+                        if (!userDoc.exists()) {
+                            val userMap = hashMapOf(
+                                "username" to (user.displayName ?: user.email ?: "Usuario"),
+                                "email" to (user.email ?: ""),
+                                "role" to "user"
+                            )
+                            _firestore.collection("usuarios").document(user.uid).set(userMap).await()
+                        }
+                        _authState.value = AuthState.Authenticated
+                    }
+                } else {
+                    _authState.value = AuthState.Error("Error en la autenticación con Google.")
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Error al iniciar sesión con Google.")
+            }
+        }
+    }
 
     fun register(email: String, password: String, username: String) {
         if (email.isBlank() || password.isBlank() || username.isBlank()) {

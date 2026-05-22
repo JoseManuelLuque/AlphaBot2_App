@@ -8,11 +8,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.jluqgon214.alphabot2.gamepad.GamepadManager
+import com.jluqgon214.alphabot2.screens.AboutScreen
 import com.jluqgon214.alphabot2.screens.controls.ConfigScreen
 import com.jluqgon214.alphabot2.screens.MainScreenWithNav
 import com.jluqgon214.alphabot2.screens.PostsScreen
+import com.jluqgon214.alphabot2.screens.PrivacyPolicyScreen
 import com.jluqgon214.alphabot2.screens.ProfileScreen
 import com.jluqgon214.alphabot2.screens.SettingsScreen
+import com.jluqgon214.alphabot2.screens.TermsScreen
 import com.jluqgon214.alphabot2.screens.UserProfileScreen
 import com.jluqgon214.alphabot2.screens.auth.LoginScreen
 import com.jluqgon214.alphabot2.screens.auth.RegisterScreen
@@ -22,7 +25,6 @@ fun NavGraph(
     navController: NavHostController,
     innerPadding: PaddingValues,
     gamepadManager: GamepadManager,
-    onMenuClick: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -66,8 +68,7 @@ fun NavGraph(
                 password = password,
                 innerPadding = innerPadding,
                 gamepadManager = gamepadManager,
-                forceTouchControl = forceTouchControl,
-                onMenuClick = onMenuClick
+                forceTouchControl = forceTouchControl
             )
         }
         composable(Screen.Profile.route) {
@@ -78,6 +79,15 @@ fun NavGraph(
         }
         composable(Screen.Settings.route) {
             SettingsScreen()
+        }
+        composable(Screen.About.route) {
+            AboutScreen(navController = navController)
+        }
+        composable(Screen.Terms.route) {
+            TermsScreen()
+        }
+        composable(Screen.Privacy.route) {
+            PrivacyPolicyScreen()
         }
         composable(
             route = Screen.UserProfile.route,

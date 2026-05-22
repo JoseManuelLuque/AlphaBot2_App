@@ -2,14 +2,8 @@ package com.jluqgon214.alphabot2.screens
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -33,26 +27,13 @@ fun MainScreenWithNav(
     password: String,
     innerPadding: PaddingValues,
     gamepadManager: GamepadManager,
-    forceTouchControl: Boolean,
-    onMenuClick: () -> Unit
+    forceTouchControl: Boolean
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val currentScreen = BottomNavScreen.getAllScreens().find { it.route == currentRoute }
-
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(currentScreen?.title ?: "AlphaBot2") },
-                navigationIcon = {
-                    IconButton(onClick = onMenuClick) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú")
-                    }
-                }
-            )
-        },
         bottomBar = {
             BottomNavigationBar(navController = navController)
         }

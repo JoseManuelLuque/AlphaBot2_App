@@ -11,6 +11,9 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Posts : Screen("posts")
     object Settings : Screen("settings")
+    object About : Screen("about")
+    object Terms : Screen("terms")
+    object Privacy : Screen("privacy")
     object UserProfile : Screen("user_profile/{userId}") {
         fun createRoute(userId: String): String {
             return "user_profile/$userId"

@@ -3,9 +3,12 @@ package com.jluqgon214.alphabot2.navigation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -58,6 +61,36 @@ fun DrawerContent(
             selected = false,
             onClick = {
                 navController.navigate(Screen.Settings.route)
+                onDestinationClicked()
+            }
+        )
+
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Info, contentDescription = null) },
+            label = { Text("Sobre mi") },
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.About.route)
+                onDestinationClicked()
+            }
+        )
+
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Description, contentDescription = null) },
+            label = { Text("Terminos y condiciones") },
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.Terms.route)
+                onDestinationClicked()
+            }
+        )
+
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Security, contentDescription = null) },
+            label = { Text("Politica de privacidad") },
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.Privacy.route)
                 onDestinationClicked()
             }
         )

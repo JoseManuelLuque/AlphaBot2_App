@@ -16,6 +16,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import com.jluqgon214.alphabot2.utils.DataStoreManager
 import com.jluqgon214.alphabot2.viewmodels.AuthViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 
 @Composable
 fun LoginScreen(
@@ -28,6 +35,32 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var remember by remember { mutableStateOf(false) }
     val authState by authViewModel.authState.collectAsState()
+
+    // Google Sign-In setup
+    val gso = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("354975164930-oi1d7s6ku3vkn590jmmu69s3s7j6ie10.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+    }
+    val googleSignInClient: GoogleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+
+    // Launcher para Google Sign-In
+    val googleSignInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(Exception::class.java)
+            if (account?.idToken != null) {
+                // Autenticar con Firebase usando el token de Google
+                authViewModel.loginWithGoogle(account.idToken!!)
+            } else {
+                errorMessage = "No se pudo obtener el token de Google"
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error en Google Sign-In: ${e.message}"
+        }
+    }
+
     val dataStoreManager = remember(context) { DataStoreManager(context) }
     val rememberedEmail by dataStoreManager.rememberedEmailFlow.collectAsState(initial = "")
     val rememberPref by dataStoreManager.rememberMeFlow.collectAsState(initial = false)
@@ -110,6 +143,34 @@ fun LoginScreen(
                         text = "Entrar",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                HorizontalDivider()
+
+                Text(
+                    text = "O continua con",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = {
+                        // Inicia Google Sign-In con Firebase
+                        val signInIntent = googleSignInClient.signInIntent
+                        googleSignInLauncher.launch(signInIntent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = ButtonDefaults.outlinedButtonBorder
+                ) {
+                    Text(
+                        text = "🔍 Google",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
