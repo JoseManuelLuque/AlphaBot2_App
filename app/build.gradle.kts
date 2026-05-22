@@ -88,7 +88,7 @@ dependencies {
     // JSch library for SSH connections
     implementation("com.jcraft:jsch:0.1.55")
 
-    // Kotlin Coroutines for asynchronous programming
+    // Kotlin Coroutinas
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
@@ -113,8 +113,7 @@ dependencies {
      // - La usamos para que el usuario elija el recorte de su foto de perfil.
      implementation("com.github.yalantis:ucrop:2.2.8")
 
-     // AppCompat (required by UCropActivity)
-     // AppCompat:
+     // AppCompat
      // - UCropActivity está basada en AppCompatActivity y necesita appcompat.
      // - También usamos un tema AppCompat en el AndroidManifest para la pantalla de UCrop.
       implementation("androidx.appcompat:appcompat:1.7.0")
