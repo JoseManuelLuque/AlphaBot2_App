@@ -1,61 +1,67 @@
+# AlphaBot2 App (TFG)
+
+Aplicación Android desarrollada como **Trabajo Fin de Grado** para controlar un robot **AlphaBot2-Pi** equipado con **Raspberry Pi Zero 2W**.  
+La app combina dos partes:
+
+1) **Control del robot** desde el móvil (movimiento, buzzer, LEDs, etc.).  
+2) **Parte social** con usuarios y publicaciones usando **Firebase**.
+
+> Repositorio de scripts del robot (Raspberry Pi): [`JoseManuelLuque/AlphaBot2-App-Scripts`](https://github.com/JoseManuelLuque/AlphaBot2-App-Scripts)
+
 ---
-icon: robot
+
+## ¿Qué hace la app?
+
+### Control del robot
+- Pantalla de **configuración de conexión** (IP/usuario/contraseña).
+- **Control de movimiento** con joysticks táctiles.
+- Soporte de **mando Bluetooth**.
+- Vista de cámara en tiempo real
+- Opción **“Forzar control táctil”** (por compatibilidad con algunos móviles que detectan un mando aunque no haya nada conectado).
+- Módulos extra:
+  - **Buzzer / sonidos**
+  - **LEDs**
+  - **Seguimiento de línea** (incluido, pero con fallos actuales)
+
+### Parte social (Firebase)
+- **Registro / inicio de sesión** (Firebase Authentication).
+- **Perfil de usuario** con avatar.
+- **Posts** con:
+  - creación de publicaciones (con o sin imagen)
+  - comentarios
+  - likes
+
 ---
 
-# APP AlphaBot2
+## Tecnologías utilizadas
+- **Android:** Kotlin + Jetpack Compose
+- **Arquitectura:** MVVM (ViewModels)
+- **Backend social:** Firebase (Auth + Firestore + Storage)
+- **Robot:** Raspberry Pi Zero 2W + scripts y comunicación desde la app
 
-Esta es una app Android para el control y manejo del robot AlphaBot2-Pi en mi caso equipado con una Raspberry Pi Zero 2.0
+---
 
-***
+## Limitaciones conocidas
+- **Cámara:** el sistema es funcional, pero puede fallar por:
+  - limitaciones de rendimiento de la Raspberry Pi Zero 2W (latencia),
+  - y problemas físicos del cable flex de la cámara (contacto inestable).
+- **Seguimiento de línea:** está integrado en la app, pero actualmente **no funciona correctamente** y queda como mejora pendiente.
 
-## 📚Índice
+---
 
-1. **Introducción**
-   1. Contexto personal (cómo surgió la idea, por qué te interesó el tema).
-   2. Motivación del proyecto (problema a resolver o necesidad detectada).
-   3. Objetivos del proyecto (qué querías lograr).
-   4. Alcance y límites (qué se incluye y qué no)
-2. **Antecedentes**
-   1. Explicación breve de la situación actual (apps similares, métodos existentes).
-   2. Qué aporta tu proyecto que lo diferencia.
-   3. Conceptos necesarios para entender tu app / robot.
-3. **Planteamiento del proyecto**
-   1. Descripción funcional: qué hace el sistema, para quién y cómo se usa.
-   2. Uso previsto (ej. hogar, hobby, educación, demostración).
-   3. Requisitos iniciales:
-      1. Requisitos funcionales (lo que hace).
-      2. Requisitos no funcionales (rendimiento, seguridad, usabilidad).
-4. **Arquitectura del sistema**
-   1. Diagrama general del sistema (App Android + API + Base de datos + Robot si corresponde).
-   2. Tecnologías utilizadas:
-      1. Lenguaje (Kotlin, Python, etc.).
-      2. Frameworks (Jetpack Compose, Firebase, etc.).
-      3. Hardware (Raspberry Pi, AlphaBot2).
-   3. Justificación de por qué elegiste esas tecnologías.
-5.  Diseño de la Aplicación
+## Cómo usar (resumen)
+1. Inicia sesión o crea una cuenta.
+2. Entra a la pantalla de **Configuración** y escribe la IP/usuario/contraseña del robot.
+3. Conéctate y usa el módulo de control (joysticks / mando / buzzer / LEDs / etc.).
 
-    1. Identidad visual
-    2. Mapeo de pantallas
-    3. Diseño de pantallas
-       1. Inicio de sesión/Registro
-       2. Conexión al robot
-       3. Control movimiento
-       4. Altavoz (Buzzer)
-       5. Leds
-       6. Seguimiento de línea
+---
 
+## Créditos
+- Documentación y referencias del robot/sensores: **Waveshare**.
+- Joysticks táctiles: se utiliza una librería externa llamada JetStick.
+- Pagina de Android Developers para la progrmación del mando bluetooh
 
-6. Desarrollo de la Aplicación
-   1. Android
-      1. Estrucutura de Paquetes
-      2. Arquitectura
-   2. Robot
-      1. Preparación
-      2. Control
-      3. Código
-      4. Librerías
-      5. Dificultades
-7. Pruebas y validación&#x20;
-8. Conclusión&#x20;
-9. Anexos
+---
 
+## Licencia
+MIT
