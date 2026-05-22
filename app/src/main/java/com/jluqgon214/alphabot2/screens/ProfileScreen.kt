@@ -1,6 +1,12 @@
 package com.jluqgon214.alphabot2.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,7 +44,7 @@ import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+// ...existing imports...
 
 
 /**
@@ -77,7 +82,7 @@ fun ProfileScreen(
     // =============== UCrop: recibir el resultado del recorte ===============
     // Este launcher recibe el resultado de la Activity de UCrop.
     // Si el usuario confirma el recorte, UCrop nos devuelve una Uri con la imagen recortada.
-    val cropLauncher = rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+    val cropLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             val resultUri = UCrop.getOutput(result.data!!)
             if (resultUri != null) {
@@ -170,14 +175,21 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(avatarUrl.ifEmpty { "https://www.w3schools.com/howto/img_avatar.png" }),
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
+                    // Avatar con overlay de edición: se puede pulsar para cambiar
+                    Box(modifier = Modifier.size(140.dp), contentAlignment = Alignment.Center) {
+                        Image(
+                            painter = rememberAsyncImagePainter(avatarUrl.ifEmpty { "https://www.w3schools.com/howto/img_avatar.png" }),
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .clickable(enabled = !loading) { launcher.launch("image/*") },
+                            contentScale = ContentScale.Crop
+                        )
+                        IconButton(onClick = { if (!loading) launcher.launch("image/*") }, modifier = Modifier.align(Alignment.BottomEnd)) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar avatar", tint = Color.White)
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -194,16 +206,13 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // `enabled = !loading` → evita que el usuario pulse varias veces mientras se guarda/sube.
-                        Button(onClick = { profileViewModel.updateUsername(editableUsername) }, enabled = !loading) {
-                            Text("Guardar nombre")
-                        }
-                        // Lanza el selector de imágenes y luego el recorte (UCrop).
-                        Button(onClick = { launcher.launch("image/*") }, enabled = !loading) {
-                            Text("Cambiar avatar")
-                        }
+                    // Botón para guardar cambios de perfil
+                    Button(onClick = { profileViewModel.updateUsername(editableUsername) }, enabled = !loading, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                        Text("Guardar cambios")
                     }
+
+                    // Pequeño texto de ayuda
+                    Text(text = "Pulsa el avatar para cambiar la imagen. Los cambios se guardan en tu cuenta.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth())
 
                     if (loading) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -218,14 +227,33 @@ fun ProfileScreen(
             }
         }
 
-        // Delete account button at the bottom
-        Button(
-            onClick = { showDeleteDialog = true },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !loading,
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-        ) {
-            Text(text = "Eliminar cuenta", color = MaterialTheme.colorScheme.onError)
+        // Logout + Delete account buttons
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    // Logout simple
+                    try {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                    } catch (_: Exception) {
+                    }
+                    navController?.navigate("login") {
+                        popUpTo(0)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !loading
+            ) {
+                Text(text = "Cerrar sesión")
+            }
+
+            Button(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !loading,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text(text = "Eliminar cuenta", color = MaterialTheme.colorScheme.onError)
+            }
         }
 
         if (showDeleteDialog) {

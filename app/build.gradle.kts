@@ -117,5 +117,8 @@ dependencies {
      // AppCompat:
      // - UCropActivity está basada en AppCompatActivity y necesita appcompat.
      // - También usamos un tema AppCompat en el AndroidManifest para la pantalla de UCrop.
-     implementation("androidx.appcompat:appcompat:1.7.0")
+      implementation("androidx.appcompat:appcompat:1.7.0")
+
+      // DataStore Preferences (guardar opciones como "recordarme")
+      implementation("androidx.datastore:datastore-preferences:1.0.0")
 }

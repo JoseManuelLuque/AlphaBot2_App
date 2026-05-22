@@ -55,11 +55,23 @@ class PostsViewModel : ViewModel() {
     private val _currentUserId = MutableStateFlow(auth.currentUser?.uid.orEmpty())
     val currentUserId: StateFlow<String> = _currentUserId
 
+    private val _userRole = MutableStateFlow("user")
+    val userRole: StateFlow<String> = _userRole
+
     private var postsListener: ListenerRegistration? = null
     private val commentListeners = mutableMapOf<String, ListenerRegistration>()
 
     init {
+        loadUserRole()
         observePosts()
+    }
+
+    private fun loadUserRole() {
+        val uid = auth.currentUser?.uid ?: return
+        firestore.collection("usuarios").document(uid).get()
+            .addOnSuccessListener { doc ->
+                _userRole.value = doc.getString("role") ?: "user"
+            }
     }
 
     // Escucha los posts en tiempo real ordenados por recientes.

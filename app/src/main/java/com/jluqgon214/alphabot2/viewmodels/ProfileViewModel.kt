@@ -5,8 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -27,6 +31,9 @@ class ProfileViewModel : ViewModel() {
     private val _avatarUrl = MutableStateFlow("")
     val avatarUrl: StateFlow<String> = _avatarUrl
 
+    private val _role = MutableStateFlow("")
+    val role: StateFlow<String> = _role
+
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
@@ -34,6 +41,12 @@ class ProfileViewModel : ViewModel() {
     val error: StateFlow<String?> = _error
     private val _deleted = MutableStateFlow(false)
     val deleted: StateFlow<Boolean> = _deleted
+
+    private val _bloqueos = MutableStateFlow<List<Map<String, Any>>>(emptyList())
+    val bloqueos: StateFlow<List<Map<String, Any>>> = _bloqueos
+
+    private val _events = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val events: SharedFlow<String> = _events.asSharedFlow()
 
     init {
         // Al crear el ViewModel cargamos el perfil del usuario actualmente logueado.
@@ -54,6 +67,7 @@ class ProfileViewModel : ViewModel() {
                         _username.value = document.getString("username") ?: ""
                         _email.value = document.getString("email") ?: ""
                         _avatarUrl.value = document.getString("avatarUrl") ?: ""
+                        _role.value = document.getString("role") ?: "user"
                     }
                 }
         }
@@ -142,6 +156,146 @@ class ProfileViewModel : ViewModel() {
 
     fun clearError() {
         _error.value = null
+    }
+
+    // ============ FUNCIONES DE ADMIN ============
+    fun promoteToAdmin(password: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val adminPassword = "admin"  // Contraseña hardcodeada (en producción, usar backend)
+
+        _loading.value = true
+        _error.value = null
+
+        if (password != adminPassword) {
+            _error.value = "Contraseña incorrecta"
+            _loading.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val data = mapOf("role" to "admin")
+                firestore.collection("usuarios").document(uid).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
+                _role.value = "admin"
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error promoting to admin"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    // Bloquear usuario por X horas
+    fun blockUser(userId: String, hours: Long, reason: String) {
+        val currentUid = auth.currentUser?.uid ?: return
+        val blockedUntil = System.currentTimeMillis() + (hours * 60 * 60 * 1000)
+
+        _loading.value = true
+        _error.value = null
+
+        viewModelScope.launch {
+            try {
+                // Actualizar estado de bloqueo en el usuario
+                val data = mapOf(
+                    "blockedUntil" to blockedUntil,
+                    "blockReason" to reason
+                )
+                firestore.collection("usuarios").document(userId).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
+
+                // Guardar log en subcollection
+                val logData = mapOf(
+                    "fechaBloqueo" to System.currentTimeMillis(),
+                    "adminId" to currentUid,
+                    "adminNombre" to (_username.value.ifBlank { "Admin" }),
+                    "horasBloqueadas" to hours,
+                    "razon" to reason,
+                    "desbloqueadoEn" to 0L
+                )
+                firestore.collection("usuarios").document(userId)
+                    .collection("bloqueos")
+                    .add(logData)
+                    .await()
+
+                // Refrescar logs localmente y notificar a la UI
+                loadBloqueos(userId)
+                _events.emit("blocked:$userId")
+                _error.value = null
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error bloqueando usuario"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    // Desbloquear usuario
+    fun unblockUser(userId: String) {
+        _loading.value = true
+        _error.value = null
+
+        viewModelScope.launch {
+            try {
+                val data = mapOf(
+                    "blockedUntil" to 0L,
+                    "blockReason" to ""
+                )
+                firestore.collection("usuarios").document(userId).set(data, com.google.firebase.firestore.SetOptions.merge()).await()
+                // Refrescar y notificar
+                loadBloqueos(userId)
+                _events.emit("unblocked:$userId")
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error desbloqueando usuario"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    // Obtener perfil de otro usuario
+    suspend fun fetchUserProfile(userId: String): Map<String, Any>? {
+        return try {
+            firestore.collection("usuarios").document(userId).get().await().data
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun deleteUser(userId: String) {
+        _loading.value = true
+        _error.value = null
+
+        viewModelScope.launch {
+            try {
+                // Borrar documento de usuario
+                firestore.collection("usuarios").document(userId).delete().await()
+                _events.emit("deleted:$userId")
+                // Aquí idealmente también borrar posts del usuario, etc.
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error eliminando usuario"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    // Cargar logs de bloqueos de un usuario
+    fun loadBloqueos(userId: String) {
+        viewModelScope.launch {
+            try {
+                val bloqueosSnapshot = firestore.collection("usuarios").document(userId)
+                    .collection("bloqueos")
+                    .orderBy("fechaBloqueo", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+
+                val blocos = bloqueosSnapshot.documents.map { doc ->
+                    doc.data ?: emptyMap()
+                }
+                _bloqueos.value = blocos
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error cargando logs"
+            }
+        }
     }
 
     fun deleteAccount() {

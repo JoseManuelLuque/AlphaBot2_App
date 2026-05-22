@@ -3,6 +3,7 @@ package com.jluqgon214.alphabot2.screens.auth
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -13,6 +14,7 @@ import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import com.jluqgon214.alphabot2.utils.DataStoreManager
 import com.jluqgon214.alphabot2.viewmodels.AuthViewModel
 
 @Composable
@@ -20,10 +22,15 @@ fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var remember by remember { mutableStateOf(false) }
     val authState by authViewModel.authState.collectAsState()
+    val dataStoreManager = remember(context) { DataStoreManager(context) }
+    val rememberedEmail by dataStoreManager.rememberedEmailFlow.collectAsState(initial = "")
+    val rememberPref by dataStoreManager.rememberMeFlow.collectAsState(initial = false)
 
     Box(
         modifier = Modifier
@@ -75,6 +82,13 @@ fun LoginScreen(
                     singleLine = true
                 )
 
+                // Checkbox para recordar el usuario
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = remember, onCheckedChange = { remember = it })
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Recordarme")
+                }
+
                 errorMessage?.let {
                     Text(it, color = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -102,6 +116,10 @@ fun LoginScreen(
                 LaunchedEffect(authState) {
                     when (authState) {
                         is AuthViewModel.AuthState.Authenticated -> {
+                            // Guardamos o limpiamos "Recordarme" en DataStore
+                            val emailToSave = if (remember) email else null
+                            dataStoreManager.saveRememberMe(email = emailToSave, remember = remember)
+
                             navController.navigate("config") {
                                 popUpTo("login") { inclusive = true }
                             }
@@ -110,6 +128,21 @@ fun LoginScreen(
                             errorMessage = (authState as AuthViewModel.AuthState.Error).message
                         }
                         else -> Unit
+                    }
+                }
+
+                // Carga los valores guardados para dejar el login relleno como lo tenía el usuario.
+                LaunchedEffect(rememberPref, rememberedEmail) {
+                    remember = rememberPref
+                    if (remember && email.isBlank() && rememberedEmail.isNotBlank()) {
+                        email = rememberedEmail
+                    }
+                }
+
+                // Si hay sesión guardada y el usuario marcó "Recordarme", la validamos al entrar.
+                LaunchedEffect(rememberPref) {
+                    if (rememberPref) {
+                        authViewModel.validarSesionGuardada()
                     }
                 }
 

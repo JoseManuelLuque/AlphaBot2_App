@@ -13,6 +13,7 @@ import com.jluqgon214.alphabot2.screens.MainScreenWithNav
 import com.jluqgon214.alphabot2.screens.PostsScreen
 import com.jluqgon214.alphabot2.screens.ProfileScreen
 import com.jluqgon214.alphabot2.screens.SettingsScreen
+import com.jluqgon214.alphabot2.screens.UserProfileScreen
 import com.jluqgon214.alphabot2.screens.auth.LoginScreen
 import com.jluqgon214.alphabot2.screens.auth.RegisterScreen
 
@@ -73,10 +74,22 @@ fun NavGraph(
             ProfileScreen(navController = navController)
         }
         composable(Screen.Posts.route) {
-            PostsScreen()
+            PostsScreen(navController = navController)
         }
         composable(Screen.Settings.route) {
             SettingsScreen()
+        }
+        composable(
+            route = Screen.UserProfile.route,
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            UserProfileScreen(
+                userId = userId,
+                navController = navController
+            )
         }
     }
 }

@@ -11,6 +11,11 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Posts : Screen("posts")
     object Settings : Screen("settings")
+    object UserProfile : Screen("user_profile/{userId}") {
+        fun createRoute(userId: String): String {
+            return "user_profile/$userId"
+        }
+    }
     object Main : Screen("main/{host}/{user}/{password}/{forceTouchControl}") {
         fun createRoute(host: String, user: String, password: String, forceTouchControl: Boolean): String {
             return "main/$host/$user/$password/$forceTouchControl"

@@ -64,9 +64,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.jluqgon214.alphabot2.models.CommentModel
 import com.jluqgon214.alphabot2.models.PostModel
+import com.jluqgon214.alphabot2.navigation.Screen
 import com.jluqgon214.alphabot2.viewmodels.PostsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,7 +81,8 @@ import java.util.Locale
 
 @Composable
 fun PostsScreen(
-    postsViewModel: PostsViewModel = viewModel()
+    postsViewModel: PostsViewModel = viewModel(),
+    navController: NavController? = null
 ) {
     val context = LocalContext.current
     val posts by postsViewModel.posts.collectAsState()
@@ -90,6 +93,7 @@ fun PostsScreen(
     val deletingPostIds by postsViewModel.deletingPostIds.collectAsState()
     val error by postsViewModel.error.collectAsState()
     val currentUserId by postsViewModel.currentUserId.collectAsState()
+    val userRole by postsViewModel.userRole.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -183,7 +187,11 @@ fun PostsScreen(
                     onTogglePostLike = { postsViewModel.togglePostLike(post.id) },
                     onSendComment = { commentText -> postsViewModel.addComment(post.id, commentText) },
                     onToggleCommentLike = { commentId -> postsViewModel.toggleCommentLike(post.id, commentId) },
-                    onDeletePost = { postsViewModel.deletePost(post) }
+                    onDeletePost = { postsViewModel.deletePost(post) },
+                    userRole = userRole,
+                    onViewProfile = { userId ->
+                        navController?.navigate(Screen.UserProfile.createRoute(userId))
+                    }
                 )
             }
         }
@@ -325,7 +333,7 @@ private fun CreatePostDialog(
 }
 
 @Composable
-private fun PostCard(
+internal fun PostCard(
     post: PostModel,
     comments: List<CommentModel>,
     currentUserId: String,
@@ -334,7 +342,9 @@ private fun PostCard(
     onTogglePostLike: () -> Unit,
     onSendComment: (String) -> Unit,
     onToggleCommentLike: (String) -> Unit,
-    onDeletePost: () -> Unit
+    onDeletePost: () -> Unit,
+    userRole: String = "user",
+    onViewProfile: (String) -> Unit = {}
 ) {
     var commentText by remember(post.id) { mutableStateOf("") }
     var showComments by remember(post.id) { mutableStateOf(false) }
@@ -368,7 +378,8 @@ private fun PostCard(
                         text = post.username,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable { onViewProfile(post.userId) }
                     )
                     Text(
                         text = formatDateDayMonth(post.createdAt),
@@ -377,7 +388,8 @@ private fun PostCard(
                     )
                 }
 
-                if (post.userId == currentUserId) {
+                // Mostrar menú si es el propietario O si es admin
+                if (post.userId == currentUserId || userRole == "admin") {
                     IconButton(onClick = { showMenu = true }, enabled = !deletingPost) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Opciones del post")
                     }

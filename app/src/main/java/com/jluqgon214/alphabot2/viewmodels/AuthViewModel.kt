@@ -23,9 +23,45 @@ class AuthViewModel : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState
 
+    // Comprueba si la cuenta sigue bloqueada y devuelve el mensaje si no puede entrar.
+    private suspend fun comprobarBloqueo(userId: String): String? {
+        val userDoc = _firestore.collection("usuarios").document(userId).get().await()
+        val blockedUntil = userDoc.getLong("blockedUntil") ?: 0L
+        val blockReason = userDoc.getString("blockReason") ?: ""
+
+        return if (blockedUntil > System.currentTimeMillis()) {
+            val remainingMs = blockedUntil - System.currentTimeMillis()
+            val hours = remainingMs / (1000 * 60 * 60)
+            "Cuenta bloqueada. Te queda: $hours horas. Razón: $blockReason"
+        } else {
+            null
+        }
+    }
+
+    // Sirve para arrancar la app con la sesión guardada, pero sin saltarnos los bloqueos.
+    fun validarSesionGuardada() {
+        val currentUser = _auth.currentUser ?: return
+        _authState.value = AuthState.Loading
+
+        viewModelScope.launch {
+            try {
+                val mensajeBloqueo = comprobarBloqueo(currentUser.uid)
+                if (mensajeBloqueo != null) {
+                    _auth.signOut()
+                    _authState.value = AuthState.Error(mensajeBloqueo)
+                } else {
+                    _authState.value = AuthState.Authenticated
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Ha ocurrido un error desconocido.")
+            }
+        }
+    }
+
+
     fun register(email: String, password: String, username: String) {
         if (email.isBlank() || password.isBlank() || username.isBlank()) {
-            _authState.value = AuthState.Error("Email, password, and username cannot be empty.")
+            _authState.value = AuthState.Error("Correo, contraseña y nombre de usuario no pueden estar vacíos.")
             return
         }
         _authState.value = AuthState.Loading
@@ -36,29 +72,44 @@ class AuthViewModel : ViewModel() {
                 if (user != null) {
                     val userMap = hashMapOf(
                         "username" to username,
-                        "email" to email
+                        "email" to email,
+                        "role" to "user"  // Por defecto, nuevo usuario es "user"
                     )
                     _firestore.collection("usuarios").document(user.uid).set(userMap).await()
                 }
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "An unknown error occurred.")
+                _authState.value = AuthState.Error(e.message ?: "Ha ocurrido un error desconocido.")
             }
         }
     }
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            _authState.value = AuthState.Error("Email and password cannot be empty.")
+            _authState.value = AuthState.Error("Correo y contraseña no pueden estar vacíos.")
             return
         }
         _authState.value = AuthState.Loading
         viewModelScope.launch {
             try {
-                _auth.signInWithEmailAndPassword(email, password).await()
-                _authState.value = AuthState.Authenticated
+                val result = _auth.signInWithEmailAndPassword(email, password).await()
+                val userId = result.user?.uid
+
+                if (userId != null) {
+                    val mensajeBloqueo = comprobarBloqueo(userId)
+
+                    if (mensajeBloqueo != null) {
+                        // Si está bloqueado, cerramos sesión y no le dejamos pasar.
+                        _auth.signOut()
+                        _authState.value = AuthState.Error(mensajeBloqueo)
+                    } else {
+                        _authState.value = AuthState.Authenticated
+                    }
+                } else {
+                    _authState.value = AuthState.Authenticated
+                }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "An unknown error occurred.")
+                _authState.value = AuthState.Error(e.message ?: "Ha ocurrido un error desconocido.")
             }
         }
     }
